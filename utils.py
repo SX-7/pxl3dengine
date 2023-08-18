@@ -1,10 +1,3 @@
-import math
-
-
-class Mat3:
-    pass
-
-
 def _verify_type(compared_object: object, *types: type) -> int:
     """Throws a descriptive error when types of two objects don't align.
     Returns an int corrensponding to position of the type in `types` if
@@ -83,33 +76,6 @@ class Vec3:
     def __neg__(self):
         return self.__mul__(-1)
 
-    def x_rotation(self) -> Mat3:
-        return Mat3(
-            [
-                [1, 0, 0],
-                [0, math.cos(self.x), math.sin(self.x)],
-                [0, -math.sin(self.x), math.cos(self.x)],
-            ]
-        )
-
-    def y_rotation(self) -> Mat3:
-        return Mat3(
-            [
-                [math.cos(self.y), 0, -math.sin(self.y)],
-                [0, 1, 0],
-                [math.sin(self.y), 0, math.cos(self.y)],
-            ]
-        )
-
-    def z_rotation(self) -> Mat3:
-        return Mat3(
-            [
-                [math.cos(self.z), math.sin(self.z), 0],
-                [-math.sin(self.z), math.cos(self.z), 0],
-                [0, 0, 1],
-            ]
-        )
-
 
 class Mat3:
     """List of lists.
@@ -148,6 +114,90 @@ class Mat3:
             case _:
                 raise IndexError
         return self
+
+
+class Vec4:
+    def __init__(
+        self, x: float | int, y: float | int, z: float | int, w: float | int
+    ) -> None:
+        self.x: float = float(x)
+        self.y: float = float(y)
+        self.z: float = float(z)
+        self.w: float = float(w)
+
+    def __add__(self, other):
+        return Vec4(
+            self.x + other.x,
+            self.y + other.y,
+            self.z + other.z,
+            self.w + other.w,
+        )
+
+    def __sub__(self, other):
+        return Vec4(
+            self.x - other.x,
+            self.y - other.y,
+            self.z - other.z,
+            self.w + other.w,
+        )
+
+    def __mul__(self, other):
+        _verify_type(other, int, float)
+        return Vec4(
+            self.x * other, self.y * other, self.z * other, self.w + other
+        )
+
+    def __truediv__(self, other):
+        return self.__mul__(1 / other)
+
+    def __neg__(self):
+        return self.__mul__(-1)
+
+
+class Mat4:
+    def __init__(
+        self, matrix_data: [[float], [float], [float], [float]]
+    ) -> None:
+        self.matrix = matrix_data
+
+    def __mul__(self, other):
+        choice = _verify_type(other, Mat4, int, float, Vec4)
+        match choice:
+            case 0:
+                for x in range(4):
+                    for y in range(4):
+                        self.matrix[x][y] = (
+                            self.matrix[x][y] * other.matrix[y][x]
+                        )  # noqa
+            case 1 | 2:
+                for row in self.matrix:
+                    for cell in row:
+                        cell = cell * other
+            case 3:
+                return Vec4(
+                    self.matrix[0][0] * other.x
+                    + self.matrix[0][1] * other.y
+                    + self.matrix[0][2] * other.z
+                    + self.matrix[0][3] * other.w,
+                    self.matrix[1][0] * other.x
+                    + self.matrix[1][1] * other.y
+                    + self.matrix[1][2] * other.z
+                    + self.matrix[1][3] * other.w,
+                    self.matrix[2][0] * other.x
+                    + self.matrix[2][1] * other.y
+                    + self.matrix[2][2] * other.z
+                    + self.matrix[2][3] * other.w,
+                    self.matrix[3][0] * other.x
+                    + self.matrix[3][1] * other.y
+                    + self.matrix[3][2] * other.z
+                    + self.matrix[3][3] * other.w,
+                )
+            case _:
+                raise IndexError
+        return self
+    
+    def translation_matrix(translation_vector: Vec3):
+        pass
 
 
 class Camera:
