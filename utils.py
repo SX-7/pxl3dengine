@@ -1,6 +1,10 @@
 import math
 
 
+class Mat3:
+    pass
+
+
 def _verify_type(compared_object: object, *types: type) -> int:
     """Throws a descriptive error when types of two objects don't align.
     Returns an int corrensponding to position of the type in `types` if
@@ -79,6 +83,33 @@ class Vec3:
     def __neg__(self):
         return self.__mul__(-1)
 
+    def x_rotation(self) -> Mat3:
+        return Mat3(
+            [
+                [1, 0, 0],
+                [0, math.cos(self.x), math.sin(self.x)],
+                [0, -math.sin(self.x), math.cos(self.x)],
+            ]
+        )
+
+    def y_rotation(self) -> Mat3:
+        return Mat3(
+            [
+                [math.cos(self.y), 0, -math.sin(self.y)],
+                [0, 1, 0],
+                [math.sin(self.y), 0, math.cos(self.y)],
+            ]
+        )
+
+    def z_rotation(self) -> Mat3:
+        return Mat3(
+            [
+                [math.cos(self.z), math.sin(self.z), 0],
+                [-math.sin(self.z), math.cos(self.z), 0],
+                [0, 0, 1],
+            ]
+        )
+
 
 class Mat3:
     """List of lists.
@@ -119,61 +150,13 @@ class Mat3:
         return self
 
 
-class Rot3:
-    """Rotation represented by set of Tait-Bryan angles, measured in radians.
-    Similar to Vec3, but with different sete of functions
-    """
-
-    def __init__(self, x: float | int, y: float | int, z: float | int) -> None:
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def x_rotation(self) -> Mat3:
-        return Mat3(
-            [
-                [1, 0, 0],
-                [0, math.cos(self.x), math.sin(self.x)],
-                [0, -math.sin(self.x), math.cos(self.x)],
-            ]
-        )
-
-    def y_rotation(self) -> Mat3:
-        return Mat3(
-            [
-                [math.cos(self.y), 0, -math.sin(self.y)],
-                [0, 1, 0],
-                [math.sin(self.y), 0, math.cos(self.y)],
-            ]
-        )
-
-    def z_rotation(self) -> Mat3:
-        return Mat3(
-            [
-                [math.cos(self.z), math.sin(self.z), 0],
-                [-math.sin(self.z), math.cos(self.z), 0],
-                [0, 0, 1],
-            ]
-        )
-
-    def __add__(self, other):
-        return Rot3(self.x + other.x, self.y + other.y, self.z + other.z)
-
-    def __mul__(self, other):
-        _verify_type(other, int, float)
-        return Rot3(self.x * other, self.y * other, self.z*other)
-
-    def __truediv__(self, other):
-        return self.__mul__(1 / other)
-
-
 class Camera:
     """Changes 3d coordinates to 2d ones"""
 
     def __init__(
         self,
         camera_position: Vec3,
-        camera_orientation: Rot3,
+        camera_orientation: Vec3,
         display_surface: Vec3,
     ) -> None:
         self.update_camera(
@@ -183,7 +166,7 @@ class Camera:
     def update_camera(
         self,
         camera_position: Vec3,
-        camera_orientation: Rot3,
+        camera_orientation: Vec3,
         display_surface: Vec3,
     ) -> None:
         self.camera_position = camera_position

@@ -1,5 +1,5 @@
 import pyxel as px
-from utils import Vec3, Camera, Rot3
+from utils import Vec3, Camera
 import math
 
 
@@ -7,7 +7,7 @@ class App:
     def __init__(self) -> None:
         px.init(128, 128)
         self.camera_position = Vec3(0, 32, 0)
-        self.camera_rotation = Rot3(math.pi / 2, 0, 0)
+        self.camera_rotation = Vec3(math.pi / 2, 0, 0)
         self.display_surface = Vec3(64, 64, 32)
         self.camera = Camera(
             self.camera_position, self.camera_rotation, self.display_surface
@@ -36,17 +36,17 @@ class App:
         if px.btn(px.KEY_F):
             self.camera_position += Vec3(0, 0, 1)
         if px.btn(px.KEY_LEFT):
-            self.camera_rotation += Rot3(0, 0, -1) / 10
+            self.camera_rotation += Vec3(0, 0, -1) / 10
         if px.btn(px.KEY_RIGHT):
-            self.camera_rotation += Rot3(0, 0, 1) / 10
+            self.camera_rotation += Vec3(0, 0, 1) / 10
         if px.btn(px.KEY_UP):
-            self.camera_rotation += Rot3(1, 0, 0) / 10
+            self.camera_rotation += Vec3(1, 0, 0) / 10
         if px.btn(px.KEY_DOWN):
-            self.camera_rotation += Rot3(-1, 0, 0) / 10
+            self.camera_rotation += Vec3(-1, 0, 0) / 10
         if px.btn(px.KEY_Q):
-            self.camera_rotation += Rot3(0, 1, 0) / 10
+            self.camera_rotation += Vec3(0, 1, 0) / 10
         if px.btn(px.KEY_E):
-            self.camera_rotation += Rot3(0, -1, 0) / 10
+            self.camera_rotation += Vec3(0, -1, 0) / 10
         self.camera.update_camera(
             self.camera_position, self.camera_rotation, self.display_surface
         )
