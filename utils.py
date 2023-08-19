@@ -1,3 +1,6 @@
+import math
+
+
 def _verify_type(compared_object: object, *types: type) -> int:
     """Throws a descriptive error when types of two objects don't align.
     Returns an int corrensponding to position of the type in `types` if
@@ -76,6 +79,13 @@ class Vec3:
     def __neg__(self):
         return self.__mul__(-1)
 
+    def normalize(self):
+        scaler = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+        self.x /= scaler
+        self.y /= scaler
+        self.z /= scaler
+        return self
+
 
 class Mat3:
     """List of lists.
@@ -116,6 +126,10 @@ class Mat3:
         return self
 
 
+class Mat4:
+    pass
+
+
 class Vec4:
     def __init__(
         self, x: float | int, y: float | int, z: float | int, w: float | int
@@ -153,6 +167,40 @@ class Vec4:
     def __neg__(self):
         return self.__mul__(-1)
 
+    def get_rotation_mat(self) -> Mat4:
+        sin = math.sin(self.w)
+        cos = math.cos(self.w)
+        return Mat4(
+            [
+                [
+                    cos + (self.x * self.x * (1 - cos)),
+                    self.x * self.y * (1 - cos) - self.z * sin,
+                    self.x * self.z * (1 - cos) + self.y * sin,
+                    0,
+                ],
+                [
+                    self.y * self.x * (1 - cos) + self.z * sin,
+                    cos + (self.y * self.y * (1 - cos)),
+                    self.y * self.z * (1 - cos) - self.x * sin,
+                    0,
+                ],
+                [
+                    self.z * self.x * (1 - cos) - self.y * sin,
+                    self.z * self.y * (1 - cos) + self.x * sin,
+                    cos + (self.z * self.z * (1 - cos)),
+                    0,
+                ],
+                [0, 0, 0, 1],
+            ]
+        )
+
+    def normalize(self):
+        scaler = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+        self.x /= scaler
+        self.y /= scaler
+        self.z /= scaler
+        return self
+
 
 class Mat4:
     def __init__(
@@ -168,7 +216,7 @@ class Mat4:
                     for y in range(4):
                         self.matrix[x][y] = (
                             self.matrix[x][y] * other.matrix[y][x]
-                        )  # noqa
+                        )
             case 1 | 2:
                 for row in self.matrix:
                     for cell in row:
@@ -195,9 +243,50 @@ class Mat4:
             case _:
                 raise IndexError
         return self
-    
-    def translation_matrix(translation_vector: Vec3):
-        pass
+
+    def identity_matrix(self):
+        return Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+
+    def scaling_matrix(self, scaling_vector: Vec3):
+        return Mat4(
+            [
+                [scaling_vector.x, 0, 0, 0],
+                [0, scaling_vector.y, 0, 0],
+                [0, 0, scaling_vector.z, 0],
+                [0, 0, 0, 1],
+            ]
+        )
+
+    def translation_matrix(self, translation_vector: Vec3):
+        return Mat4(
+            [
+                [1, 0, 0, translation_vector.x],
+                [0, 1, 0, translation_vector.y],
+                [0, 0, 1, translation_vector.z],
+                [0, 0, 0, 1],
+            ]
+        )
+
+    def look_at(
+        self, camera_position: Vec3, camera_orientation: Vec3, up_vector: Vec3
+    ) -> Mat4:
+        right = up_vector.cross(camera_orientation).normalize()
+        camera_up = camera_orientation.cross(right).normalize()
+        return Mat4(
+            [
+                [right.x, right.y, right.z, 0],
+                [camera_up.x, camera_up.y, camera_up.z, 0],
+                [
+                    camera_orientation.x,
+                    camera_orientation.y,
+                    camera_orientation.z,
+                    0,
+                ],
+                [0, 0, 0, 1],
+            ]
+        ) * Mat4([]).translation_matrix(
+            Vec3(camera_position.x, camera_position.y, camera_position.z)
+        )
 
 
 class Camera:

@@ -1,5 +1,5 @@
 import pyxel as px
-from utils import Vec3, Camera, Mat4
+from utils import Vec3, Camera
 import math
 
 
@@ -64,7 +64,6 @@ class App:
         px.text(64, 0, f"Rx={self.camera_rotation.x}", 2)
         px.text(64, 6, f"Ry={self.camera_rotation.y}", 2)
         px.text(64, 12, f"Rz={self.camera_rotation.z}", 2)
-    
 
 
 App()
