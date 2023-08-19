@@ -1,5 +1,5 @@
 import pyxel as px
-from utils import Vec3, Camera
+from utils import Vec3, Camera, speed_test
 import math
 
 
@@ -22,6 +22,7 @@ class App:
 
         px.run(self.update, self.draw)
 
+    @speed_test
     def update(self):
         if px.btn(px.KEY_A):
             self.camera_position += Vec3(-1, 0, 0)
@@ -54,6 +55,7 @@ class App:
         for point in self.point_data:
             self.screen_position.append(self.camera.get(point))
 
+    @speed_test
     def draw(self):
         px.cls(0)
         for point in self.screen_position:
