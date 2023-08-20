@@ -1,5 +1,5 @@
 import pyxel as px
-from utils import Vec3, Camera, Vec2, Vec4  # noqa
+from utils import Vec3, Camera, Vec2, Vec4, Shape
 import math
 
 
@@ -18,24 +18,56 @@ class App:
         self.camera_orientation_degrees = Vec2(90, 0)
         self.world_up = Vec3(0, 1, 0)
         # create "wireframe"
-        self.screen_position = []
-        self.point_data = []
-        for i in range(-10, 10):
-            self.point_data.append(Vec4(i, 10, 10, 1))
-            self.point_data.append(Vec4(i, -10, 10, 1))
-            self.point_data.append(Vec4(i, -10, -10, 1))
-            self.point_data.append(Vec4(i, 10, -10, 1))
-            self.point_data.append(Vec4(10, i, 10, 1))
-            self.point_data.append(Vec4(-10, i, 10, 1))
-            self.point_data.append(Vec4(-10, i, -10, 1))
-            self.point_data.append(Vec4(10, i, -10, 1))
-            self.point_data.append(Vec4(10, 10, i, 1))
-            self.point_data.append(Vec4(-10, 10, i, 1))
-            self.point_data.append(Vec4(-10, -10, i, 1))
-            self.point_data.append(Vec4(10, -10, i, 1))
-            # self.point_data.append(Vec4(0, 0, i+10, 1))
-            # self.point_data.append(Vec4(0, i+15, 0, 1))
-            # self.point_data.append(Vec4(i+20, 0, 0, 1))
+        self.screen_shapes: list[Shape] = []
+        self.shape_data: list[Shape] = []
+        self.shape_data.append(
+            Shape([Vec4(-10, 10, 10, 1), Vec4(10, 10, 10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(-10, 10, 10, 1), Vec4(-10, -10, 10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(-10, 10, 10, 1), Vec4(-10, 10, -10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(10, -10, 10, 1), Vec4(-10, -10, 10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(10, -10, 10, 1), Vec4(10, 10, 10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(10, -10, 10, 1), Vec4(10, -10, -10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(10, 10, -10, 1), Vec4(-10, 10, -10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(10, 10, -10, 1), Vec4(10, -10, -10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(10, 10, -10, 1), Vec4(10, 10, 10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(-10, -10, -10, 1), Vec4(10, -10, -10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(-10, -10, -10, 1), Vec4(-10, 10, -10, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(-10, -10, -10, 1), Vec4(-10, -10, 10, 1)])
+        )
+
+        self.shape_data.append(
+            Shape(
+                [
+                    Vec4(2, 0, 0, 1),
+                    Vec4(0, 2, 0, 1),
+                    Vec4(-2, 0, 0, 1),
+                    Vec4(0, -2, 0, 1),
+                ]
+            )
+        )
+
         # axis of rotation for the cube
         self.object_rotation = Vec4(0, 1, 0, 0)
         px.run(self.update, self.draw)
@@ -107,8 +139,8 @@ class App:
                 self.capture_mouse = True
                 px.mouse(False)
         # process pixel's positions
-        self.screen_position = self.camera.get(
-            self.point_data,
+        self.screen_shapes = self.camera.get(
+            self.shape_data,
             camera_pos=self.camera_position,
             screen_heigth=px.height,
             screen_width=px.width,
@@ -123,8 +155,29 @@ class App:
         # clear screen
         px.cls(0)
         # draw pixels
-        for point in self.screen_position:
-            px.pset(point.x, point.y, 13)
+        for shape in self.screen_shapes:
+            if shape.count == 1:
+                px.pset(shape.vertices[0].x, shape.vertices[0].y, 13)
+            elif shape.count == 2:
+                px.line(
+                    shape.vertices[0].x,
+                    shape.vertices[0].y,
+                    shape.vertices[1].x,
+                    shape.vertices[1].y,
+                    13,
+                )
+            else:
+                triangles = shape.decompose_to_triangles()
+                for triangle in triangles:
+                    px.trib(
+                        triangle.vertices[0].x,
+                        triangle.vertices[0].y,
+                        triangle.vertices[1].x,
+                        triangle.vertices[1].y,
+                        triangle.vertices[2].x,
+                        triangle.vertices[2].y,
+                        13,
+                    )
         # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)
@@ -148,7 +201,7 @@ class App:
         px.text(0, 36, f"Rx={self.mouse_position_relative.x}", 9)
         px.text(0, 42, f"Ry={self.mouse_position_relative.y}", 10)
         px.text(0, 48, f"Dx={round(self.camera_orientation_degrees.x,2)}", 11)
-        px.text(0, 56, f"Ry={round(self.camera_orientation_degrees.y,2)}", 12)
+        px.text(0, 54, f"Ry={round(self.camera_orientation_degrees.y,2)}", 12)
 
 
 App()

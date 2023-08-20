@@ -27,6 +27,58 @@ def _verify_type(compared_object: object, *types: type) -> int:
                 return i
 
 
+class Vec4:
+    pass
+
+
+class Shape:
+    pass
+
+
+class Shape:
+
+    def __init__(self, vertices: list[Vec4]) -> None:
+        self.vertices: list[Vec4] = vertices
+        self.count = len(vertices)
+
+    def add_vertice(self, vertice: Vec4) -> None:
+        self.vertices.append(vertice)
+        self.count = len(self.vertices)
+
+    def del_vertice(self, index: int) -> None:
+        self.vertices.pop(index)
+        self.count = len(self.vertices)
+
+    def decompose_to_triangles(self) -> list[Shape]:
+        """Can behave unexpectedly if used on shapes bigger than
+        triangles, whose vertices are not on the same plane.
+        Vertice no.0 will be used as common point for all triangles
+
+        Raises:
+            IndexError: If the shape is smaller than 3 vertices
+
+        Returns:
+            list[Shape]: List of triangles
+        """
+        if self.count < 3:
+            raise IndexError
+        elif self.count == 3:
+            return [self]
+        else:
+            shapes = []
+            for vertice in range(1, self.count - 1):
+                shapes.append(
+                    Shape(
+                        [
+                            self.vertices[0],
+                            self.vertices[vertice],
+                            self.vertices[vertice + 1],
+                        ]
+                    )
+                )
+            return shapes
+
+
 class Vec2:
     def __init__(self, x: float | int, y: float | int) -> None:
         self.x: float = float(x)
@@ -361,7 +413,7 @@ class Camera:
 
     def get(
         self,
-        entity: list[Vec4],
+        shapes: list[Shape],
         screen_width: int,
         screen_heigth: int,
         world_coordinates: Vec3 = Vec3(0, 0, 0),
@@ -408,37 +460,49 @@ class Camera:
         )
 
         result = []
-        for point in entity:
-            # (when I'm referring to objects, rn I mean pixels)
-            # rn we're local space, objects have small values and all, basic
-            # and unrotated, it's entirely possible to pre-do this step, but
-            # that depends on the object. rn not skipping for completion sake
-            point = world_matrix * point
-            # world space, so the objects got into their position in the game
-            point = view_matrix * point
-            # camera/view space, we've moved the objects in front of our camera
-            point = perspective_matrix * point
-            if (
-                (-point.w < point.x < point.w)
-                and (-point.w < point.y < point.w)
-                and (-point.w < point.z < point.w)
-            ):
-                point = Vec4(
-                    point.x / point.w, point.y / point.w, point.z / point.w, 1
-                )
-            else:
-                continue
-            # clip space, objects have been translated to -1 to 1 coordinates
-            # and clipped and perspective
-            point.y = -point.y
-            point += Vec4(1, 1, 0, 0)
-            point.x *= screen_width / 2
-            point.y *= screen_heigth / 2
-            # viewport transform, so basically we move to the 128x128 space, or
-            # whatever the wievport is - this is pending to be incorporated
-            # into the perspective matrix possibly? Depends on the calculation
-            # savings
-            result.append(point)
+        for shape in shapes:
+            points = shape.vertices
+            offscreen = 0
+            curr_shape_points = []
+            for point in points:
+                # rn we're local space, objects have small values and all, basic
+                # and unrotated, it's entirely possible to pre-do this step, but
+                # that depends on the object. rn not skipping for completion sake
+                point = world_matrix * point
+                # world space, so the objects got into their position in the game
+                point = view_matrix * point
+                # camera/view space, we've moved the objects in front of our camera
+                point = perspective_matrix * point
+                if (
+                    (-point.w < point.x < point.w)
+                    and (-point.w < point.y < point.w)
+                    and (-point.w < point.z < point.w)
+                ):
+                    point = Vec4(
+                        point.x / point.w,
+                        point.y / point.w,
+                        point.z / point.w,
+                        1,
+                    )
+                    # clip space, objects have been translated to -1 to 1 coordinates
+                    # and clipped and perspective
+                    point.y = -point.y
+                    point += Vec4(1, 1, 0, 0)
+                    point.x *= screen_width / 2
+                    point.y *= screen_heigth / 2
+                    # viewport transform, so basically we move to the 128x128 space, or
+                    # whatever the wievport is - this is pending to be incorporated
+                    # into the perspective matrix possibly? Depends on the calculation
+                    # savings
+                    curr_shape_points.append(point)
+                else:
+                    
+                    offscreen += 1
+                    continue  # big issue here
+                    # when clipping, figure out the intersection coordinates,
+                    # create screenspace coords for these, create a quad (2 triangles)
+            if offscreen == 0:
+                result.append(Shape(curr_shape_points))
         return result
 
 
