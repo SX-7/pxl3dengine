@@ -6,7 +6,7 @@ import math
 class App:
     def __init__(self) -> None:
         # create screen
-        px.init(128, 128)
+        px.init(256, 256)
         # set some info
         self.pov = 100
         self.camera_position = Vec3(0, 0, 30)
@@ -88,14 +88,14 @@ class App:
             self.camera_position += Vec3(0, 1, 0)
         if px.btn(px.KEY_LSHIFT):
             self.camera_position += Vec3(0, -1, 0)
-        if (px.mouse_wheel < 0) and (self.pov > 5):
+        if (px.mouse_wheel > 0) and (self.pov > 5):
             self.pov -= 5
-        elif px.mouse_wheel > 0 and self.pov < 175:
+        elif px.mouse_wheel < 0 and self.pov < 175:
             self.pov += 5
         elif px.btn(px.MOUSE_BUTTON_MIDDLE):
             self.pov = 100
         # update object rotation to make it spin
-        self.object_rotation.w += 0.1
+        #self.object_rotation.w += 0.1
         # mouse movement processing code
         if self.capture_mouse:
             self.mouse_position_relative = Vec2(px.mouse_x, px.mouse_y) - Vec2(
@@ -103,7 +103,7 @@ class App:
             )
             if px.btn(px.MOUSE_BUTTON_LEFT):
                 # take screen aspect ratio into account?
-                sensitivity = 0.1
+                sensitivity = 0.02
                 # we're currently only processing yaw+pitch, like in a FPS game
                 self.camera_orientation_degrees.x += (
                     self.mouse_position_relative.x * sensitivity
@@ -155,16 +155,19 @@ class App:
         # clear screen
         px.cls(0)
         # draw pixels
+        color = 0
         for shape in self.screen_shapes:
+            color +=1
+            color %=16
             if shape.count == 1:
-                px.pset(shape.vertices[0].x, shape.vertices[0].y, 13)
+                px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
             elif shape.count == 2:
                 px.line(
                     shape.vertices[0].x,
                     shape.vertices[0].y,
                     shape.vertices[1].x,
                     shape.vertices[1].y,
-                    13,
+                    color,
                 )
             else:
                 triangles = shape.decompose_to_triangles()
@@ -176,7 +179,7 @@ class App:
                         triangle.vertices[1].y,
                         triangle.vertices[2].x,
                         triangle.vertices[2].y,
-                        13,
+                        color,
                     )
         # draw mouse pointer helper
         if self.capture_mouse:

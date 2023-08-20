@@ -36,7 +36,6 @@ class Shape:
 
 
 class Shape:
-
     def __init__(self, vertices: list[Vec4]) -> None:
         self.vertices: list[Vec4] = vertices
         self.count = len(vertices)
@@ -142,16 +141,17 @@ class Vec3:
         return self.__mul__(-1)
 
     def normalize(self):
+        result = self
         try:
             scaler = math.sqrt(
-                self.x * self.x + self.y * self.y + self.z * self.z
+                result.x * result.x + result.y * result.y + result.z * result.z
             )
-            self.x /= scaler
-            self.y /= scaler
-            self.z /= scaler
+            result.x /= scaler
+            result.y /= scaler
+            result.z /= scaler
         except ZeroDivisionError:
             return self
-        return self
+        return result
 
     def x_rotation(self) -> Mat3:
         return Mat3(
@@ -295,16 +295,17 @@ class Vec4:
         )
 
     def normalize(self):
+        result = self
         try:
             scaler = math.sqrt(
-                self.x * self.x + self.y * self.y + self.z * self.z
+                result.x * result.x + result.y * result.y + result.z * result.z
             )
-            self.x /= scaler
-            self.y /= scaler
-            self.z /= scaler
+            result.x /= scaler
+            result.y /= scaler
+            result.z /= scaler
         except ZeroDivisionError:
             return self
-        return self
+        return result
 
 
 class Mat4:
@@ -461,9 +462,10 @@ class Camera:
 
         result = []
         for shape in shapes:
+            behind = 0
             points = shape.vertices
-            offscreen = 0
             curr_shape_points = []
+            view_points = []
             for point in points:
                 # rn we're local space, objects have small values and all, basic
                 # and unrotated, it's entirely possible to pre-do this step, but
@@ -472,37 +474,67 @@ class Camera:
                 # world space, so the objects got into their position in the game
                 point = view_matrix * point
                 # camera/view space, we've moved the objects in front of our camera
+                view_points.append(point)
+            # now, we check for points behind the camera, and deal with offending vertices
+            if len(view_points) == 1:
+                if view_points[0].z > 0:
+                    continue
+            elif len(view_points) == 2:
+                if (view_points[0].z) > 0 or (view_points[1].z > 0):
+                    if (view_points[0].z > 0) and (view_points[1].z > 0):
+                        continue
+                    else:
+                        if view_points[0].z > 0:
+                            good = view_points[1]
+                            bad = view_points[0]
+                        else:
+                            good = view_points[0]
+                            bad = view_points[1]
+                        diff = bad - good
+                        # magic number, but actually necessary due to
+                        # imperfections of floating point systems (:
+                        # What was happening, is we'd get
+                        diff = -((diff / diff.z) * good.z)*0.99
+                        bad = good + diff
+                        view_points[0] = good
+                        view_points[1] = bad
+            for point in view_points:
                 point = perspective_matrix * point
-                if (
-                    (-point.w < point.x < point.w)
-                    and (-point.w < point.y < point.w)
-                    and (-point.w < point.z < point.w)
-                ):
+                # if (
+                #    (-point.w < point.x < point.w)
+                #    and (-point.w < point.y < point.w)
+                #    and (-point.w < point.z < point.w)
+                # ):
+                try:
                     point = Vec4(
                         point.x / point.w,
                         point.y / point.w,
                         point.z / point.w,
                         1,
                     )
+                    if point.z < 0 or point.z > 1:
+                        behind += 1
                     # clip space, objects have been translated to -1 to 1 coordinates
                     # and clipped and perspective
-                    point.y = -point.y
-                    point += Vec4(1, 1, 0, 0)
-                    point.x *= screen_width / 2
-                    point.y *= screen_heigth / 2
-                    # viewport transform, so basically we move to the 128x128 space, or
-                    # whatever the wievport is - this is pending to be incorporated
-                    # into the perspective matrix possibly? Depends on the calculation
-                    # savings
-                    curr_shape_points.append(point)
-                else:
-                    
-                    offscreen += 1
-                    continue  # big issue here
-                    # when clipping, figure out the intersection coordinates,
-                    # create screenspace coords for these, create a quad (2 triangles)
-            if offscreen == 0:
+                except:
+                    # do something here later? currently less of a priority
+                    continue
+                point.y = -point.y
+                point += Vec4(1, 1, 0, 0)
+                point.x *= screen_width / 2
+                point.y *= screen_heigth / 2
+                # viewport transform, so basically we move to the 128x128 space, or
+                # whatever the wievport is - this is pending to be incorporated
+                # into the perspective matrix possibly? Depends on the calculation
+                # savings
+                curr_shape_points.append(point)
+            if behind == len(
+                curr_shape_points
+            ):  # remember to add to close handling somewhere here later
+                continue
+            else:
                 result.append(Shape(curr_shape_points))
+
         return result
 
 
