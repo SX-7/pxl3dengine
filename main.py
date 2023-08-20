@@ -6,8 +6,9 @@ import math
 class App:
     def __init__(self) -> None:
         # create screen
-        px.init(136, 145)
+        px.init(128, 128)
         # set some info
+        self.pov = 100
         self.camera_position = Vec3(0, 0, 30)
         self.camera = Camera()
         self.capture_mouse = True
@@ -55,18 +56,15 @@ class App:
             self.camera_position += Vec3(0, 1, 0)
         if px.btn(px.KEY_LSHIFT):
             self.camera_position += Vec3(0, -1, 0)
+        if px.mouse_wheel < 0:
+            self.pov -= 5
+        elif px.mouse_wheel > 0:
+            self.pov += 5
+        elif px.btn(px.MOUSE_BUTTON_MIDDLE):
+            self.pov = 100
         # update object rotation to make it spin
         self.object_rotation.w += 0.1
-        # process pixel's positions
-        self.screen_position = self.camera.get(
-            self.point_data,
-            camera_pos=self.camera_position,
-            screen_heigth=px.height,
-            screen_width=px.width,
-            rotation=self.object_rotation,
-            camera_front=self.camera_front,
-            world_up=self.world_up,
-        )
+        # mouse movement processing code
         if self.capture_mouse:
             self.mouse_position_relative = Vec2(px.mouse_x, px.mouse_y) - Vec2(
                 px.width // 2, px.height // 2
@@ -108,12 +106,26 @@ class App:
             else:
                 self.capture_mouse = True
                 px.mouse(False)
+        # process pixel's positions
+        self.screen_position = self.camera.get(
+            self.point_data,
+            camera_pos=self.camera_position,
+            screen_heigth=px.height,
+            screen_width=px.width,
+            rotation=self.object_rotation,
+            camera_front=self.camera_front,
+            world_up=self.world_up,
+            pov=self.pov,
+        )
 
     # @speed_test
     def draw(self):
+        # clear screen
         px.cls(0)
+        # draw pixels
         for point in self.screen_position:
             px.pset(point.x, point.y, 13)
+        # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)
             px.pset(
