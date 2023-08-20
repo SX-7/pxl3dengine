@@ -88,9 +88,9 @@ class App:
             self.camera_position += Vec3(0, 1, 0)
         if px.btn(px.KEY_LSHIFT):
             self.camera_position += Vec3(0, -1, 0)
-        if px.mouse_wheel < 0:
+        if (px.mouse_wheel < 0) and (self.pov > 5):
             self.pov -= 5
-        elif px.mouse_wheel > 0:
+        elif px.mouse_wheel > 0 and self.pov < 175:
             self.pov += 5
         elif px.btn(px.MOUSE_BUTTON_MIDDLE):
             self.pov = 100
