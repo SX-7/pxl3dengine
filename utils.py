@@ -59,6 +59,9 @@ class Vec3:
         self.y: float = float(y)
         self.z: float = float(z)
 
+    def __str__(self) -> str:
+        return f"Vec3({self.x}, {self.y}, {self.z})"
+
     def __add__(self, other):
         return Vec3(self.x + other.x, self.y + other.y, self.z + other.z)
 
@@ -73,11 +76,12 @@ class Vec3:
         return self.x * other.x + self.y * other.y + self.z * other.z
 
     def cross(self, other):
-        return Vec3(
+        self = Vec3(
             self.y * other.z - self.z * other.y,
             self.z * other.x - self.x * other.z,
             self.x * other.y - self.y * other.x,
         )
+        return self
 
     def __truediv__(self, other):
         return self.__mul__(1 / other)
@@ -86,10 +90,15 @@ class Vec3:
         return self.__mul__(-1)
 
     def normalize(self):
-        scaler = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
-        self.x /= scaler
-        self.y /= scaler
-        self.z /= scaler
+        try:
+            scaler = math.sqrt(
+                self.x * self.x + self.y * self.y + self.z * self.z
+            )
+            self.x /= scaler
+            self.y /= scaler
+            self.z /= scaler
+        except ZeroDivisionError:
+            return self
         return self
 
     def x_rotation(self) -> Mat3:
@@ -175,6 +184,9 @@ class Vec4:
         self.z: float = float(z)
         self.w: float = float(w)
 
+    def __str__(self) -> str:
+        return f"Vec4({self.x}, {self.y}, {self.z}, {self.w})"
+
     def __add__(self, other):
         return Vec4(
             self.x + other.x,
@@ -231,10 +243,15 @@ class Vec4:
         )
 
     def normalize(self):
-        scaler = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
-        self.x /= scaler
-        self.y /= scaler
-        self.z /= scaler
+        try:
+            scaler = math.sqrt(
+                self.x * self.x + self.y * self.y + self.z * self.z
+            )
+            self.x /= scaler
+            self.y /= scaler
+            self.z /= scaler
+        except ZeroDivisionError:
+            return self
         return self
 
 
@@ -335,27 +352,6 @@ class Mat4:
             ]
         )
 
-    def look_at(
-        camera_position: Vec3, camera_orientation: Vec3, up_vector: Vec3
-    ) -> Mat4:
-        right = up_vector.cross(camera_orientation).normalize()
-        camera_up = camera_orientation.cross(right).normalize()
-        return Mat4(
-            [
-                [right.x, right.y, right.z, 0],
-                [camera_up.x, camera_up.y, camera_up.z, 0],
-                [
-                    camera_orientation.x,
-                    camera_orientation.y,
-                    camera_orientation.z,
-                    0,
-                ],
-                [0, 0, 0, 1],
-            ]
-        ) * Mat4([]).translation_matrix(
-            Vec3(camera_position.x, camera_position.y, camera_position.z)
-        )
-
 
 class Camera:
     """Changes 3d coordinates to 2d ones"""
@@ -371,18 +367,44 @@ class Camera:
         world_coordinates: Vec3 = Vec3(0, 0, 0),
         rotation: Vec4 = Vec4(0, 0, 0, 0),
         scaling: Vec3 = Vec3(1, 1, 1),
-        camera_pos: Vec3 = Vec3(64, 64, 0),
+        camera_pos: Vec3 = Vec3(0, 0, 64),
+        camera_front: Vec3 = Vec3(0, 0, 1),
+        world_up: Vec3 = Vec3(0, 1, 0),
+        pov: float = 100,
+        near: float = 0.1,
+        far: float = 100,
     ):
+        # create object specific transforms
         world_matrix = Mat4.scaling_matrix(scaling)
         world_matrix = rotation.rotation_matrix() * world_matrix
         world_matrix = (
             Mat4.translation_matrix(world_coordinates) * world_matrix
         )
-
-        view_matrix = Mat4.translation_matrix(camera_pos)
-
+        # camera specific transforms
+        camera_direction = camera_front.normalize()
+        right = world_up.cross(camera_direction).normalize()
+        camera_up = camera_direction.cross(right)
+        # for some reason we're using a wrong system?
+        # ideally, we'd like cartesian+screen x and y axes
+        # to be 1:1 with pyxel cords. As such, a hack is needed.
+        # Maybe an error in other part of the program, but this works
+        # just as good
+        view_matrix = Mat4(
+            [
+                [right.x, right.y, right.z, 0],
+                [camera_up.x, camera_up.y, camera_up.z, 0],
+                [
+                    camera_direction.x,
+                    camera_direction.y,
+                    camera_direction.z,
+                    0,
+                ],
+                [0, 0, 0, 1],
+            ]
+        ) * Mat4.translation_matrix(-camera_pos)
+        # perspective transform
         perspective_matrix = Mat4.perspective_matrix(
-            math.radians(100), screen_width / screen_heigth, 0.1, 100
+            math.radians(pov), screen_width / screen_heigth, near, far
         )
 
         result = []
@@ -392,14 +414,8 @@ class Camera:
             # and unrotated, it's entirely possible to pre-do this step, but
             # that depends on the object. rn not skipping for completion sake
             point = world_matrix * point
-            point = Vec4(
-                point.x / point.w, point.y / point.w, point.z / point.w, 1
-            )
             # world space, so the objects got into their position in the game
             point = view_matrix * point
-            point = Vec4(
-                point.x / point.w, point.y / point.w, point.z / point.w, 1
-            )
             # camera/view space, we've moved the objects in front of our camera
             point = perspective_matrix * point
             if (
@@ -414,11 +430,14 @@ class Camera:
                 continue
             # clip space, objects have been translated to -1 to 1 coordinates
             # and clipped and perspective
+            point.y = -point.y
             point += Vec4(1, 1, 0, 0)
-            point.x *= screen_width/2
-            point.y *= screen_heigth/2
+            point.x *= screen_width / 2
+            point.y *= screen_heigth / 2
             # viewport transform, so basically we move to the 128x128 space, or
-            # whatever the wievport is
+            # whatever the wievport is - this is pending to be incorporated
+            # into the perspective matrix possibly? Depends on the calculation
+            # savings
             result.append(point)
         return result
 
