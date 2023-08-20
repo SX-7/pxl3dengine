@@ -459,9 +459,15 @@ class Camera:
         perspective_matrix = Mat4.perspective_matrix(
             math.radians(pov), screen_width / screen_heigth, near, far
         )
-
-        result = []
+        # we *DO NOT* want things bigger than triangles. Decompose, and then process
+        good_shapes = []
         for shape in shapes:
+            if shape.count > 3:
+                good_shapes.extend(shape.decompose_to_triangles())
+            else:
+                good_shapes.append(shape)
+        result = []
+        for shape in good_shapes:
             behind = 0
             points = shape.vertices
             curr_shape_points = []
@@ -494,10 +500,42 @@ class Camera:
                         # magic number, but actually necessary due to
                         # imperfections of floating point systems (:
                         # What was happening, is we'd get
-                        diff = -((diff / diff.z) * good.z)*0.99
+                        diff = -((diff / diff.z) * good.z) * 0.99
                         bad = good + diff
                         view_points[0] = good
                         view_points[1] = bad
+            elif len(view_points) == 3:
+                which = []
+                for i in range(len(view_points)):
+                    if view_points[i].z > 0:
+                        which.append(i)
+                if len(which)==3:
+                    continue
+                elif len(which) == 2:
+                    which_not = 6 - sum(which)
+                    good = view_points[which_not]
+                    bad_one = view_points[which[0]]
+                    bad_two = view_points[which[1]]
+                    diff_one = bad_one - good
+                    diff_two = bad_two - good
+                    # magic number, but actually necessary due to
+                    # imperfections of floating point systems (:
+                    # What was happening, is we'd get
+                    diff_one = -((diff_one / diff_one.z) * good.z) * 0.99
+                    diff_two = -((diff_two / diff_two.z) * good.z) * 0.99
+                    bad_one = good + diff_one
+                    bad_two = good + diff_two
+                    view_points[0] = good
+                    view_points[1] = bad_one
+                    view_points[2] = bad_two
+                elif len(which) == 1:
+                    # this case is problematic, since we have a triangle that's
+                    # gonna get clipped in such a way, it'll have two good and 
+                    # two fake vertices. since we want only triangles, we will
+                    # pack them into Shape and call the splitter
+                    # ALSO don't forget about vertice order
+            else:
+                raise IndexError("Wtf??")
             for point in view_points:
                 point = perspective_matrix * point
                 # if (

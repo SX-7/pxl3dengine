@@ -95,7 +95,7 @@ class App:
         elif px.btn(px.MOUSE_BUTTON_MIDDLE):
             self.pov = 100
         # update object rotation to make it spin
-        #self.object_rotation.w += 0.1
+        # self.object_rotation.w += 0.1
         # mouse movement processing code
         if self.capture_mouse:
             self.mouse_position_relative = Vec2(px.mouse_x, px.mouse_y) - Vec2(
@@ -157,8 +157,8 @@ class App:
         # draw pixels
         color = 0
         for shape in self.screen_shapes:
-            color +=1
-            color %=16
+            color += 1
+            color %= 16
             if shape.count == 1:
                 px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
             elif shape.count == 2:
@@ -170,17 +170,15 @@ class App:
                     color,
                 )
             else:
-                triangles = shape.decompose_to_triangles()
-                for triangle in triangles:
-                    px.trib(
-                        triangle.vertices[0].x,
-                        triangle.vertices[0].y,
-                        triangle.vertices[1].x,
-                        triangle.vertices[1].y,
-                        triangle.vertices[2].x,
-                        triangle.vertices[2].y,
-                        color,
-                    )
+                px.trib(
+                    shape.vertices[0].x,
+                    shape.vertices[0].y,
+                    shape.vertices[1].x,
+                    shape.vertices[1].y,
+                    shape.vertices[2].x,
+                    shape.vertices[2].y,
+                    color,
+                )
         # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)
