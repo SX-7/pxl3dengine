@@ -466,7 +466,9 @@ class Camera:
                 good_shapes.extend(shape.decompose_to_triangles())
             else:
                 good_shapes.append(shape)
+
         result = []
+        unbehind_shapes = []
         for shape in good_shapes:
             behind = 0
             points = shape.vertices
@@ -483,9 +485,11 @@ class Camera:
                 view_points.append(point)
             # now, we check for points behind the camera, and deal with offending vertices
             if len(view_points) == 1:
+                print("Processing point")
                 if view_points[0].z > 0:
                     continue
             elif len(view_points) == 2:
+                print("processing line")
                 if (view_points[0].z) > 0 or (view_points[1].z > 0):
                     if (view_points[0].z > 0) and (view_points[1].z > 0):
                         continue
@@ -504,7 +508,8 @@ class Camera:
                         bad = good + diff
                         view_points[0] = good
                         view_points[1] = bad
-            elif len(view_points) == 3:
+            elif len(view_points) == 4:
+                print("processing triangle")
                 which = []
                 for i in range(len(view_points)):
                     if view_points[i].z > 0:
@@ -512,7 +517,7 @@ class Camera:
                 if len(which)==3:
                     continue
                 elif len(which) == 2:
-                    which_not = 6 - sum(which)
+                    which_not = 3 - sum(which)
                     good = view_points[which_not]
                     bad_one = view_points[which[0]]
                     bad_two = view_points[which[1]]
@@ -529,14 +534,43 @@ class Camera:
                     view_points[1] = bad_one
                     view_points[2] = bad_two
                 elif len(which) == 1:
+                    match which[0]:
+                        case 0:
+                            good_one = view_points[1]
+                            good_two = view_points[2]
+                        case 1:
+                            good_one = view_points[0]
+                            good_two = view_points[2]
+                        case 2:
+                            good_one = view_points[0]
+                            good_two = view_points[1]
+                    bad_orig = view_points[which[0]]
+                    diff_one = bad_orig - good_one
+                    diff_two = bad_orig - good_two
+                    # magic number, but actually necessary due to
+                    # imperfections of floating point systems (:
+                    # What was happening, is we'd get
+                    diff_one = -((diff_one / diff_one.z) * good_one.z) * 0.99
+                    diff_two = -((diff_two / diff_two.z) * good_two.z) * 0.99
+                    bad_one = good_one + diff_one
+                    bad_two = good_two + diff_two
+                    split_triangles = Shape([good_one,bad_one,bad_two,good_two]).decompose_to_triangles()
+                    unbehind_shapes.append(split_triangles[0])
+                    view_points[0]=split_triangles[1].vertices[0]
+                    view_points[1]=split_triangles[1].vertices[1]
+                    view_points[2]=split_triangles[1].vertices[2]
                     # this case is problematic, since we have a triangle that's
                     # gonna get clipped in such a way, it'll have two good and 
                     # two fake vertices. since we want only triangles, we will
                     # pack them into Shape and call the splitter
                     # ALSO don't forget about vertice order
             else:
-                raise IndexError("Wtf??")
-            for point in view_points:
+                pass
+                #raise IndexError("Wtf??")
+            unbehind_shapes.append(Shape(view_points))
+        for shape in unbehind_shapes:
+            unbehind_points = shape.vertices
+            for point in unbehind_points:
                 point = perspective_matrix * point
                 # if (
                 #    (-point.w < point.x < point.w)
