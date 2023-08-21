@@ -1,7 +1,7 @@
 import math
 import functools
 import time
-
+from random import randint
 
 def _verify_type(compared_object: object, *types: type) -> int:
     """Throws a descriptive error when types of two objects don't align.
@@ -76,6 +76,13 @@ class Shape:
                     )
                 )
             return shapes
+    
+    def fracture(self) -> list[Shape]:
+        if self.count != 3:
+            return [self]
+        for depth in range(5):
+            pass
+        return [self]
 
 
 class Vec2:
@@ -601,7 +608,51 @@ class Camera:
                     )
                 else:
                     result.append(Shape(curr_shape_points))
-
+        # what we have, is shapes with possibly some insane values. Clip time
+        unclipped_shapes = result
+        result = []
+        for shape in unclipped_shapes:
+            result.extend(shape.fracture())
+        unclipped_shapes = result
+        result = []
+        for shape in unclipped_shapes:
+            # remove points, if for some reason they're still here
+            if shape.count == 1:
+                if shape.vertices[0].x < 0:
+                    continue
+                elif shape.vertices[0].x > screen_width:
+                    continue
+                if shape.vertices[0].y < 0:
+                    continue
+                elif shape.vertices[0].y > screen_heigth:
+                    continue
+                result.append(shape)
+            # shorten lines
+            elif shape.count == 2:
+                if (
+                    0 < shape.vertices[0].x < screen_width
+                    and 0 < shape.vertices[0].y < screen_heigth
+                    and 0 < shape.vertices[1].x < screen_width
+                    and 0 < shape.vertices[1].y < screen_heigth
+                ):
+                    result.append(shape)
+                else:
+                    continue
+            # clip triangles
+            elif shape.count == 3:
+                if (
+                    0 < shape.vertices[0].x < screen_width
+                    and 0 < shape.vertices[0].y < screen_heigth
+                    and 0 < shape.vertices[1].x < screen_width
+                    and 0 < shape.vertices[1].y < screen_heigth
+                    and 0 < shape.vertices[2].x < screen_width
+                    and 0 < shape.vertices[2].y < screen_heigth
+                ):
+                    result.append(shape)
+                else:
+                    continue
+            else:
+                result.append(shape)
         return result
 
 

@@ -1,0 +1,3 @@
+Currently not progressing it due to:
+- pyxel provides no support for clipping, requiring lots of `if`s on our side to not fall down into hellhole of performance death at close ranges
+- cpu-side z-buffer is required for object drawing order, requiring possibly single-pixel draw calls. Which would absolutely ruin performance, as 256x256 screen of single pixel draw calls is limiting pyxel's fps to 25fps on an average machine, using bigger screens/more fps/drawing more than once per pixel would make it plummet, since the calls aren't buffered at all, sadly
