@@ -509,7 +509,7 @@ class Camera:
                 for i in range(len(view_points)):
                     if view_points[i].z > 0:
                         which.append(i)
-                if len(which)==3:
+                if len(which) == 3:
                     continue
                 elif len(which) == 2:
                     which_not = 3 - sum(which)
@@ -549,12 +549,12 @@ class Camera:
                     diff_two = -((diff_two / diff_two.z) * good_two.z) * 0.99
                     bad_one = good_one + diff_one
                     bad_two = good_two + diff_two
-                    view_points[0]=good_one
-                    view_points[1]=bad_one
-                    view_points[2]=bad_two
+                    view_points[0] = good_one
+                    view_points[1] = bad_one
+                    view_points[2] = bad_two
                     view_points.append(good_two)
                     # this case is problematic, since we have a triangle that's
-                    # gonna get clipped in such a way, it'll have two good and 
+                    # gonna get clipped in such a way, it'll have two good and
                     # two fake vertices. since we want only triangles, we will
                     # pack them into Shape and call the splitter
                     # ALSO don't forget about vertice order
@@ -595,8 +595,10 @@ class Camera:
             ):  # remember to add to close handling somewhere here later
                 continue
             else:
-                if len(curr_shape_points)>3:
-                    result.extend(Shape(curr_shape_points).decompose_to_triangles())
+                if len(curr_shape_points) > 3:
+                    result.extend(
+                        Shape(curr_shape_points).decompose_to_triangles()
+                    )
                 else:
                     result.append(Shape(curr_shape_points))
 
