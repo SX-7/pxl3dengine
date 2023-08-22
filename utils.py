@@ -647,14 +647,14 @@ class Camera:
                     ):
                         if shape.vertices[0].y <= 0:
                             diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = shape.vertices[1].y/diff.y
+                            ratio = shape.vertices[1].y / diff.y
                             diff = diff * ratio
-                            shape.vertices[0]=shape.vertices[1]-diff
+                            shape.vertices[0] = shape.vertices[1] - diff
                         else:
                             diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = shape.vertices[0].y/diff.y
+                            ratio = shape.vertices[0].y / diff.y
                             diff = diff * ratio
-                            shape.vertices[1]=shape.vertices[0]-diff
+                            shape.vertices[1] = shape.vertices[0] - diff
                         append = True
                     if Vec2.intersect(
                         Vec2(shape.vertices[0].x, shape.vertices[0].y),
@@ -664,14 +664,18 @@ class Camera:
                     ):
                         if shape.vertices[0].y >= screen_heigth:
                             diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = (screen_heigth-shape.vertices[1].y)/diff.y
+                            ratio = (
+                                screen_heigth - shape.vertices[1].y
+                            ) / diff.y
                             diff = diff * ratio
-                            shape.vertices[0]=shape.vertices[1]+diff
+                            shape.vertices[0] = shape.vertices[1] + diff
                         else:
                             diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = (screen_heigth-shape.vertices[0].y)/diff.y
+                            ratio = (
+                                screen_heigth - shape.vertices[0].y
+                            ) / diff.y
                             diff = diff * ratio
-                            shape.vertices[1]=shape.vertices[0]+diff
+                            shape.vertices[1] = shape.vertices[0] + diff
                         append = True
                     if Vec2.intersect(
                         Vec2(shape.vertices[0].x, shape.vertices[0].y),
@@ -681,14 +685,14 @@ class Camera:
                     ):
                         if shape.vertices[0].x <= 0:
                             diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = shape.vertices[1].x/diff.x
+                            ratio = shape.vertices[1].x / diff.x
                             diff = diff * ratio
-                            shape.vertices[0]=shape.vertices[1]-diff
+                            shape.vertices[0] = shape.vertices[1] - diff
                         else:
                             diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = shape.vertices[0].x/diff.x
+                            ratio = shape.vertices[0].x / diff.x
                             diff = diff * ratio
-                            shape.vertices[1]=shape.vertices[0]-diff
+                            shape.vertices[1] = shape.vertices[0] - diff
                         append = True
                     if Vec2.intersect(
                         Vec2(shape.vertices[0].x, shape.vertices[0].y),
@@ -698,14 +702,18 @@ class Camera:
                     ):
                         if shape.vertices[0].x >= screen_width:
                             diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = (screen_width-shape.vertices[1].x)/diff.x
+                            ratio = (
+                                screen_width - shape.vertices[1].x
+                            ) / diff.x
                             diff = diff * ratio
-                            shape.vertices[0]=shape.vertices[1]+diff
+                            shape.vertices[0] = shape.vertices[1] + diff
                         else:
                             diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = (screen_width-shape.vertices[0].x)/diff.x
+                            ratio = (
+                                screen_width - shape.vertices[0].x
+                            ) / diff.x
                             diff = diff * ratio
-                            shape.vertices[1]=shape.vertices[0]+diff
+                            shape.vertices[1] = shape.vertices[0] + diff
                         append = True
                     if append:
                         result.append(shape)
@@ -722,22 +730,248 @@ class Camera:
                     result.append(shape)
                 else:
                     # a triangle can (potentially) have 3 edges outside the screen,
-                    # and still cover the entire, or almost entire screen. Thus, 
+                    # and still cover the entire, or almost entire screen. Thus,
                     # the only solution is to have an intersection, set-theory-like
                     # it is sadly not possible to use already existing solutions
                     # though, as we also need the Z coordinate for later...
                     # Ok, so:
-                    # 1. Calculate which parts each vertice belongs in. 
+                    # 1. Calculate which parts each vertice belongs in.
                     # top,bottom,right,left,center, can be in two at once (like corners)
-                    # 2. If 0 is in center, add it to resulting shape
+                    new_shape = Shape([])
+                    positions = []
+                    for i in range(3):
+                        quadrants = {
+                            "left": False,
+                            "top": False,
+                            "right": False,
+                            "bot": False,
+                            "center": False,
+                        }
+                        if shape.vertices[i].x < 0:
+                            quadrants["left"] = True
+                        if shape.vertices[i].x > screen_width:
+                            quadrants["right"] = True
+                        if shape.vertices[i].y < 0:
+                            quadrants["top"] = True
+                        if shape.vertices[i].y > screen_heigth:
+                            quadrants["bot"] = True
+                        # 2. If 0 is in center, add it to resulting shape
+                        if not (
+                            quadrants["bot"]
+                            or quadrants["left"]
+                            or quadrants["right"]
+                            or quadrants["top"]
+                        ):
+                            quadrants["center"] = True
+                        positions.append(quadrants)
                     # 3. If 1 shares no quadrants with 0, run line intersection calculations
-                    # in order defined by source and end quadrants, adding resulting points to the
-                    # result shape (in proper order)
+                    for data in zip([0, 1, 2], [1, 2, 0]):
+                        curr = data[0]
+                        cont = data[1]
+                        if positions[curr]["center"]:
+                            new_shape.add_vertice(shape.vertices[curr])
+                        if not (
+                            (
+                                positions[curr]["left"]
+                                and positions[cont]["left"]
+                            )
+                            or (
+                                positions[curr]["right"]
+                                and positions[cont]["right"]
+                            )
+                            or (
+                                positions[curr]["top"]
+                                and positions[cont]["top"]
+                            )
+                            or (
+                                positions[curr]["bot"]
+                                and positions[cont]["bot"]
+                            )
+                            or (
+                                positions[curr]["center"]
+                                and positions[cont]["center"]
+                            )
+                        ):
+                            # in order defined by source and end quadrants, adding resulting points to the
+                            # result shape (in proper order)
+                            def le_in(point1: Vec4, point2: Vec4):
+                                if Vec2.intersect(
+                                    Vec2(point1.x, point1.y),
+                                    Vec2(point2.x, point2.y),
+                                    Vec2(0, 0),
+                                    Vec2(0, screen_heigth),
+                                ):
+                                    if point1.x <= 0:
+                                        diff = point1 - point2
+                                        ratio = point2.x / diff.x
+                                        diff = diff * ratio
+                                        new_point = point2 - diff
+                                    else:
+                                        diff = point2 - point1
+                                        ratio = point1.x / diff.x
+                                        diff = diff * ratio
+                                        new_point = point1 - diff
+                                    return True, new_point
+                                return False, Vec4(0, 0, 0, 0)
+
+                            def ri_in(point1: Vec4, point2: Vec4):
+                                if Vec2.intersect(
+                                    Vec2(point1.x, point1.y),
+                                    Vec2(point2.x, point2.y),
+                                    Vec2(screen_width, 0),
+                                    Vec2(screen_width, screen_heigth),
+                                ):
+                                    if point1.x >= screen_width:
+                                        diff = point1 - point2
+                                        ratio = (
+                                            screen_width - point2.x
+                                        ) / diff.x
+                                        diff = diff * ratio
+                                        new_point = point2 + diff
+                                    else:
+                                        diff = point2 - point1
+                                        ratio = (screen_width-point1.x) / diff.x
+                                        diff = diff * ratio
+                                        new_point = point1 + diff
+                                    return True, new_point
+                                return False, Vec4(0, 0, 0, 0)
+
+                            def to_in(point1: Vec4, point2: Vec4):
+                                if Vec2.intersect(
+                                    Vec2(point1.x, point1.y),
+                                    Vec2(point2.x, point2.y),
+                                    Vec2(0, 0),
+                                    Vec2(screen_width, 0),
+                                ):
+                                    if point1.y <= 0:
+                                        diff = point1 - point2
+                                        ratio = point2.y / diff.y
+                                        diff = diff * ratio
+                                        new_point = point2 - diff
+                                    else:
+                                        diff = point2 - point1
+                                        ratio = point1.y / diff.y
+                                        diff = diff * ratio
+                                        new_point = point1 - diff
+                                    return True, new_point
+                                return False, Vec4(0, 0, 0, 0)
+
+                            def bo_in(point1: Vec4, point2: Vec4):
+                                if Vec2.intersect(
+                                    Vec2(point1.x, point1.y),
+                                    Vec2(point2.x, point2.y),
+                                    Vec2(0, screen_heigth),
+                                    Vec2(screen_width, screen_heigth),
+                                ):
+                                    if point1.y >= screen_heigth:
+                                        diff = point1 - point2
+                                        ratio = (
+                                            screen_heigth - point2.y
+                                        ) / diff.y
+                                        diff = diff * ratio
+                                        new_point = point2 + diff
+                                    else:
+                                        diff = point2 - point1
+                                        ratio = (
+                                            screen_heigth - point1.y
+                                        ) / diff.y
+                                        diff = diff * ratio
+                                        new_point = point1 + diff
+                                    return True, new_point
+                                return False, Vec4(0, 0, 0, 0)
+
+                            calculations = []
+                            # 2 issues: 
+                            # 1, we're only checking the curr, meaning the lines that go back are not checked
+                            # 2. for some reason calculations are wrong and are giving us False
+                            if positions[curr]["left"]:
+                                calculations.append(le_in)
+                                if positions[curr]["top"]:
+                                    calculations.append(to_in)
+                                    calculations.append(bo_in)
+                                else:
+                                    calculations.append(bo_in)
+                                    calculations.append(to_in)
+                                calculations.append(ri_in)
+                            elif positions[curr]["top"]:
+                                calculations.append(to_in)
+                                if positions[curr]["right"]:
+                                    calculations.append(ri_in)
+                                    calculations.append(le_in)
+                                else:
+                                    calculations.append(le_in)
+                                    calculations.append(ri_in)
+                                calculations.append(bo_in)
+                            elif positions[curr]["right"]:
+                                calculations.append(ri_in)
+                                if positions[curr]["bot"]:
+                                    calculations.append(bo_in)
+                                    calculations.append(to_in)
+                                else:
+                                    calculations.append(to_in)
+                                    calculations.append(bo_in)
+                                calculations.append(le_in)
+                            elif positions[curr]["bot"]:
+                                calculations.append(bo_in)
+                                if positions[curr]["left"]:
+                                    calculations.append(le_in)
+                                    calculations.append(ri_in)
+                                else:
+                                    calculations.append(ri_in)
+                                    calculations.append(le_in)
+                                calculations.append(to_in)
+                            elif positions[cont]["left"]:
+                                calculations.append(le_in)
+                                if positions[cont]["top"]:
+                                    calculations.append(to_in)
+                                    calculations.append(bo_in)
+                                else:
+                                    calculations.append(bo_in)
+                                    calculations.append(to_in)
+                                calculations.append(ri_in)
+                            elif positions[cont]["top"]:
+                                calculations.append(to_in)
+                                if positions[cont]["right"]:
+                                    calculations.append(ri_in)
+                                    calculations.append(le_in)
+                                else:
+                                    calculations.append(le_in)
+                                    calculations.append(ri_in)
+                                calculations.append(bo_in)
+                            elif positions[cont]["right"]:
+                                calculations.append(ri_in)
+                                if positions[cont]["bot"]:
+                                    calculations.append(bo_in)
+                                    calculations.append(to_in)
+                                else:
+                                    calculations.append(to_in)
+                                    calculations.append(bo_in)
+                                calculations.append(le_in)
+                            elif positions[cont]["bot"]:
+                                calculations.append(bo_in)
+                                if positions[cont]["left"]:
+                                    calculations.append(le_in)
+                                    calculations.append(ri_in)
+                                else:
+                                    calculations.append(ri_in)
+                                    calculations.append(le_in)
+                                calculations.append(to_in)
+                            for func in calculations:
+                                intersected, at_point = func(
+                                    shape.vertices[curr], shape.vertices[cont]
+                                )
+                                if intersected:
+                                    new_shape.add_vertice(at_point)
                     # 4. Repeat for 1 and 2, and 2 and 0
                     # 5. Run triangle splitter on the resulting polygon
-                    # 6. Add the resulting list to results
-                    print("slipping triangle")
-                    result.append(shape)
+                    try:
+                        triangles = new_shape.decompose_to_triangles()
+                        # 6. Add the resulting list to results
+                        result.extend(triangles)
+                    except IndexError:
+                        # that means that there was only 1 point remaining, 
+                        # so, it was on the border, or outside it, so goodbye
+                        pass
             else:
                 print("How did you get a 4+= sided shape in here lmao")
                 result.append(shape)
