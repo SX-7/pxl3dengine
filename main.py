@@ -25,9 +25,17 @@ class App:
             Shape(
                 [
                     Vec4(-10, 10, 10, 1),
-                    Vec4(10, 10, 10, 1),
                     Vec4(10, -10, 10, 1),
                     Vec4(-10, -10, 10, 1),
+                ]
+            )
+        )
+        self.shape_data.append(
+            Shape(
+                [
+                    Vec4(-10, 10, 10, 1),
+                    Vec4(10, 10, 10, 1),
+                    Vec4(10, -10, 10, 1),
                 ]
             )
         )
@@ -45,9 +53,9 @@ class App:
             Shape(
                 [
                     Vec4(10, -10, 10, 1),
-                    Vec4(10, -10, -10, 1),
-                    Vec4(10, 10, -10, 1),
                     Vec4(10, 10, 10, 1),
+                    Vec4(10, 10, -10, 1),
+                    Vec4(10, -10, -10, 1),
                 ]
             )
         )
@@ -65,9 +73,9 @@ class App:
             Shape(
                 [
                     Vec4(-10, -10, 10, 1),
-                    Vec4(-10, -10, -10, 1),
-                    Vec4(10, -10, -10, 1),
                     Vec4(10, -10, 10, 1),
+                    Vec4(10, -10, -10, 1),
+                    Vec4(-10, -10, -10, 1),
                 ]
             )
         )
@@ -97,9 +105,13 @@ class App:
             )
         )
         # also some lines
-        
-        self.shape_data.append(Shape([Vec4(15,15,15,1),Vec4(15,15,-15,1)]))
-        self.shape_data.append(Shape([Vec4(-15,15,15,1),Vec4(-15,15,-15,1)]))
+
+        self.shape_data.append(
+            Shape([Vec4(15, 15, 15, 1), Vec4(15, 15, -15, 1)])
+        )
+        self.shape_data.append(
+            Shape([Vec4(-15, 15, 15, 1), Vec4(-15, 15, -15, 1)])
+        )
         # axis of rotation for the cube
         self.object_rotation = Vec4(0, 1, 0, 0)
         px.run(self.update, self.draw)
@@ -170,7 +182,7 @@ class App:
             else:
                 self.capture_mouse = True
                 px.mouse(False)
-        if px.btnp(px.KEY_0, 0, 10):
+        if px.btnp(px.KEY_8, 0, 10):
             if self.wireframe:
                 self.wireframe = False
             else:
@@ -202,7 +214,7 @@ class App:
         px.cls(0)
         # draw pixels
         color = 0
-        #self.screen_shapes.sort(key=lambda inp: -inp[0].vertices[0].z)
+        # self.screen_shapes.sort(key=lambda inp: -inp[0].vertices[0].z)
         for shape_group in self.screen_shapes:
             color += 1
             color %= 16
@@ -268,7 +280,8 @@ class App:
                 0, 54, f"Ry={round(self.camera_orientation_degrees.y,2)}", 12
             )
             px.text(0, 60, f"Wf={self.wireframe}", 13)
-            px.text(0,66,f"Fo={self.pov}",14)
+            px.text(0, 66, f"Fo={self.pov}", 14)
+            px.text(0,px.height-6,"DEBUG=KEY_9 MOUSE=KEY_\\ WIREFRAME=KEY_8",7)
 
 
 App()

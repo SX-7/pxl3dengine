@@ -103,15 +103,15 @@ class Vec2:
         return self.__mul__(-1)
 
     @staticmethod
-    def __ccw(A, B, C) -> bool:
+    def ccw(A, B, C) -> bool:
         return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
 
     # https://gist.github.com/alexcpn/45c5026397e11751583891831cc36456
     @staticmethod
     def intersect(A, B, C, D):
-        return Vec2.__ccw(A, C, D) != Vec2.__ccw(B, C, D) and Vec2.__ccw(
+        return Vec2.ccw(A, C, D) != Vec2.ccw(B, C, D) and Vec2.ccw(
             A, B, C
-        ) != Vec2.__ccw(A, B, D)
+        ) != Vec2.ccw(A, B, D)
 
 
 class Mat3:
@@ -421,7 +421,15 @@ class Mat4:
 
 
 class Camera:
-    """Changes 3d coordinates to 2d ones"""
+    """Changes 3d coordinates to 2d ones.
+    Input list of shapes (or a single shape) and parameters.
+    Returns a list of shapes whose x and y coordinates of vertices can be used
+    on a standard pyxel screen, with z values for what comes before/after.
+    The list may be longer in case of spltting shapes into triangles, or
+    shorter, in case of various face culling/removal techniques.
+
+    CCW coordinates define visible faces
+    """
 
     def __init__(self):
         pass
@@ -615,6 +623,24 @@ class Camera:
                     )
                 else:
                     result.append(Shape(curr_shape_points))
+        # we only want to display shapes that are CCW towards us
+        unclockwised_faces = result
+        result = []
+        for face in unclockwised_faces:
+            # skip non lines
+            if face.count < 3:
+                result.append(face)
+            elif face.count > 3:
+                raise IndexError(
+                    "This is right after decompose, this shouldn't break"
+                )
+            else:
+                if Vec2.ccw(
+                    Vec2(face.vertices[0].x, face.vertices[0].y),
+                    Vec2(face.vertices[1].x, face.vertices[1].y),
+                    Vec2(face.vertices[2].x, face.vertices[2].y),
+                ):
+                    result.append(face)
         # what we have, is shapes with possibly some insane values. Clip time
         unclipped_shapes = result
         result = []
@@ -830,7 +856,9 @@ class Camera:
                                         new_point = point2 + diff
                                     else:
                                         diff = point2 - point1
-                                        ratio = (screen_width-point1.x) / diff.x
+                                        ratio = (
+                                            screen_width - point1.x
+                                        ) / diff.x
                                         diff = diff * ratio
                                         new_point = point1 + diff
                                     return True, new_point
@@ -881,7 +909,7 @@ class Camera:
                                 return False, Vec4(0, 0, 0, 0)
 
                             calculations = []
-                            # 2 issues: 
+                            # 2 issues:
                             # 1, we're only checking the curr, meaning the lines that go back are not checked
                             # 2. for some reason calculations are wrong and are giving us False
                             if positions[curr]["left"]:
@@ -969,11 +997,13 @@ class Camera:
                         # 6. Add the resulting list to results
                         result.extend(triangles)
                     except IndexError:
-                        # that means that there was only 1 point remaining, 
+                        # that means that there was only 1 point remaining,
                         # so, it was on the border, or outside it, so goodbye
                         pass
             else:
-                print("How did you get a 4+= sided shape in here lmao")
+                print(
+                    "How did you get a 4+= sided shape in here. Test&report pls"
+                )
                 result.append(shape)
         return result
 
