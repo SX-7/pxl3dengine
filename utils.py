@@ -709,7 +709,6 @@ class Camera:
                         append = True
                     if append:
                         result.append(shape)
-                    continue
             # clip triangles
             elif shape.count == 3:
                 if (
@@ -722,8 +721,25 @@ class Camera:
                 ):
                     result.append(shape)
                 else:
-                    continue
+                    # a triangle can (potentially) have 3 edges outside the screen,
+                    # and still cover the entire, or almost entire screen. Thus, 
+                    # the only solution is to have an intersection, set-theory-like
+                    # it is sadly not possible to use already existing solutions
+                    # though, as we also need the Z coordinate for later...
+                    # Ok, so:
+                    # 1. Calculate which parts each vertice belongs in. 
+                    # top,bottom,right,left,center, can be in two at once (like corners)
+                    # 2. If 0 is in center, add it to resulting shape
+                    # 3. If 1 shares no quadrants with 0, run line intersection calculations
+                    # in order defined by source and end quadrants, adding resulting points to the
+                    # result shape (in proper order)
+                    # 4. Repeat for 1 and 2, and 2 and 0
+                    # 5. Run triangle splitter on the resulting polygon
+                    # 6. Add the resulting list to results
+                    print("slipping triangle")
+                    result.append(shape)
             else:
+                print("How did you get a 4+= sided shape in here lmao")
                 result.append(shape)
         return result
 
