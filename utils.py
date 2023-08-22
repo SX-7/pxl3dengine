@@ -1,7 +1,7 @@
 import math
 import functools
 import time
-from random import randint
+
 
 def _verify_type(compared_object: object, *types: type) -> int:
     """Throws a descriptive error when types of two objects don't align.
@@ -76,19 +76,15 @@ class Shape:
                     )
                 )
             return shapes
-    
-    def fracture(self) -> list[Shape]:
-        if self.count != 3:
-            return [self]
-        for depth in range(5):
-            pass
-        return [self]
 
 
 class Vec2:
     def __init__(self, x: float | int, y: float | int) -> None:
         self.x: float = float(x)
         self.y: float = float(y)
+
+    def __str__(self) -> str:
+        return f"Vec2({self.x}, {self.y})"
 
     def __add__(self, other):
         return Vec2(self.x + other.x, self.y + other.y)
@@ -105,6 +101,17 @@ class Vec2:
 
     def __neg__(self):
         return self.__mul__(-1)
+
+    @staticmethod
+    def __ccw(A, B, C) -> bool:
+        return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
+
+    # https://gist.github.com/alexcpn/45c5026397e11751583891831cc36456
+    @staticmethod
+    def intersect(A, B, C, D):
+        return Vec2.__ccw(A, C, D) != Vec2.__ccw(B, C, D) and Vec2.__ccw(
+            A, B, C
+        ) != Vec2.__ccw(A, B, D)
 
 
 class Mat3:
@@ -611,22 +618,16 @@ class Camera:
         # what we have, is shapes with possibly some insane values. Clip time
         unclipped_shapes = result
         result = []
-        for shape in unclipped_shapes:
-            result.extend(shape.fracture())
-        unclipped_shapes = result
-        result = []
+        # heavy clipping which is necessary cuz otherwise pyxel dies, trying to draw stuff at 1e+18
         for shape in unclipped_shapes:
             # remove points, if for some reason they're still here
             if shape.count == 1:
-                if shape.vertices[0].x < 0:
-                    continue
-                elif shape.vertices[0].x > screen_width:
-                    continue
-                if shape.vertices[0].y < 0:
-                    continue
-                elif shape.vertices[0].y > screen_heigth:
-                    continue
-                result.append(shape)
+                if (
+                    0 < shape.vertices[0].x < screen_width
+                    and 0 < shape.vertices[0].y < screen_heigth
+                ):
+                    result.append(shape)
+                continue
             # shorten lines
             elif shape.count == 2:
                 if (
@@ -637,6 +638,77 @@ class Camera:
                 ):
                     result.append(shape)
                 else:
+                    append = False
+                    if Vec2.intersect(
+                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
+                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
+                        Vec2(0, 0),
+                        Vec2(screen_width, 0),
+                    ):
+                        if shape.vertices[0].y <= 0:
+                            diff = shape.vertices[0] - shape.vertices[1]
+                            ratio = shape.vertices[1].y/diff.y
+                            diff = diff * ratio
+                            shape.vertices[0]=shape.vertices[1]-diff
+                        else:
+                            diff = shape.vertices[1] - shape.vertices[0]
+                            ratio = shape.vertices[0].y/diff.y
+                            diff = diff * ratio
+                            shape.vertices[1]=shape.vertices[0]-diff
+                        append = True
+                    if Vec2.intersect(
+                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
+                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
+                        Vec2(0, screen_heigth),
+                        Vec2(screen_width, screen_heigth),
+                    ):
+                        if shape.vertices[0].y >= screen_heigth:
+                            diff = shape.vertices[0] - shape.vertices[1]
+                            ratio = (screen_heigth-shape.vertices[1].y)/diff.y
+                            diff = diff * ratio
+                            shape.vertices[0]=shape.vertices[1]+diff
+                        else:
+                            diff = shape.vertices[1] - shape.vertices[0]
+                            ratio = (screen_heigth-shape.vertices[0].y)/diff.y
+                            diff = diff * ratio
+                            shape.vertices[1]=shape.vertices[0]+diff
+                        append = True
+                    if Vec2.intersect(
+                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
+                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
+                        Vec2(0, 0),
+                        Vec2(0, screen_heigth),
+                    ):
+                        if shape.vertices[0].x <= 0:
+                            diff = shape.vertices[0] - shape.vertices[1]
+                            ratio = shape.vertices[1].x/diff.x
+                            diff = diff * ratio
+                            shape.vertices[0]=shape.vertices[1]-diff
+                        else:
+                            diff = shape.vertices[1] - shape.vertices[0]
+                            ratio = shape.vertices[0].x/diff.x
+                            diff = diff * ratio
+                            shape.vertices[1]=shape.vertices[0]-diff
+                        append = True
+                    if Vec2.intersect(
+                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
+                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
+                        Vec2(screen_width, 0),
+                        Vec2(screen_width, screen_heigth),
+                    ):
+                        if shape.vertices[0].x >= screen_width:
+                            diff = shape.vertices[0] - shape.vertices[1]
+                            ratio = (screen_width-shape.vertices[1].x)/diff.x
+                            diff = diff * ratio
+                            shape.vertices[0]=shape.vertices[1]+diff
+                        else:
+                            diff = shape.vertices[1] - shape.vertices[0]
+                            ratio = (screen_width-shape.vertices[0].x)/diff.x
+                            diff = diff * ratio
+                            shape.vertices[1]=shape.vertices[0]+diff
+                        append = True
+                    if append:
+                        result.append(shape)
                     continue
             # clip triangles
             elif shape.count == 3:
