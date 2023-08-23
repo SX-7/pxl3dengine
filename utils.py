@@ -841,7 +841,7 @@ class Camera:
                                     square_indices[1], intersect_point
                                 )
                                 pointer_index += 2
-                    # step two - kinda more annoying to add flags, maybe double pointer, and add 1 or 0
+                    # step two - kinda more annoying to add flags, so double pointer, and add 1 or 0
                     if Vec2.is_in_triangle(
                         Vec2(0, 0),
                         shape.vertices[0],
@@ -851,15 +851,27 @@ class Camera:
                         entry = False
                     else:
                         entry = True
-                    
-                    # this is actually wrong, we should go from Vec2(0,0), and in the square, not triangle
+                    for vertice in viewport_vertices:
+                        if vertice.w >= 2:
+                            if entry:
+                                vertice.w =+ 1
+                            entry = not entry
+                    # do the same for the triangle
+                    if (
+                        0 < shape.vertices[0].x < screen_width
+                        and 0 < shape.vertices[0].y < screen_heigth
+                    ):
+                        entry = False
+                    else:
+                        entry = True
                     for vertice in shape.vertices:
                         if vertice.w >= 2:
-                            # now assign the flag
-                    # do the same for the square
-                    
+                            if entry:
+                                vertice.w =+ 1
+                            entry = not entry
                     # then compute the output polygon. Nice. Probably something will break, so take care of that lol
                     # also, reconsider putting triangle splitter later, like right below us, if we can handle polygons
+                    
                     
                     try:
                         triangles = new_shape.decompose_to_triangles()
