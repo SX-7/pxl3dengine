@@ -118,8 +118,21 @@ class Vec2:
         ) != Vec2.ccw(A, B, D)
 
     @staticmethod
-    def intersection_point(A, B, C, D) -> bool | Vec4:
-        raise NotImplemented
+    def intersection_point(A, B, C, D):
+        xdiff = Vec2(A.x - B.x, C.x - D.x)
+        ydiff = Vec2(A.y - B.y, C.y - D.y)
+
+        def det(a, b):
+            return a.x * b.y - a.y * b.x
+
+        div = det(xdiff, ydiff)
+        if div == 0:
+            raise Exception("lines do not intersect")
+
+        d = Vec2(det(A, B), det(C, D))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
+        return Vec2(x, y)
 
     @staticmethod
     def is_in_triangle(point, A, B, C):
@@ -217,6 +230,15 @@ class Vec3:
             ]
         )
 
+    def place_on_plane(t_point: Vec2, A, B, C):
+        normal = (A - B).cross(C - B)
+
+        new_z = (
+            (normal.x * (t_point.x - A.x) + normal.y * (t_point.y - A.y))
+            / (-normal.z)
+        ) + A.z
+        return Vec4(t_point.x, t_point.y, new_z, 1)
+
 
 class Mat3:
     """List of lists.
@@ -304,6 +326,10 @@ class Vec4:
     def __neg__(self):
         return self.__mul__(-1)
 
+    def cross(self,other):
+        t =  Vec3.cross(self,other)
+        return Vec4(t.x,t.y,t.z,1)
+    
     def rotation_matrix(self) -> Mat4:
         sin = math.sin(self.w)
         cos = math.cos(self.w)
@@ -343,6 +369,156 @@ class Vec4:
         except ZeroDivisionError:
             return self
         return result
+
+    @staticmethod
+    def compute_shape_intersection(shape1: list[Vec4], shape2: list[Vec4]):
+        # Greiner-Hormann algo, for the pointers we're using .w
+        # step one from wikipedia
+        import copy  # I hate that I must do this
+
+        temp_shape = copy.copy(shape.vertices)
+        temp_vv = copy.copy(viewport_vertices)
+        pointer_index = 2
+        for square_indices in zip([0, 1, 2, 3], [1, 2, 3, 0]):
+            sq_beg = viewport_vertices[square_indices[0]]
+            sq_end = viewport_vertices[square_indices[1]]
+            for tri_indices in zip([0, 1, 2], [1, 2, 0]):
+                tri_beg = shape.vertices[tri_indices[0]]
+                tri_end = shape.vertices[tri_indices[1]]
+                if Vec2.intersect(sq_beg, sq_end, tri_beg, tri_end):
+                    intersect_point_2d = Vec2.intersection_point(
+                        sq_beg, sq_end, tri_beg, tri_end
+                    )
+                    intersect_point = place_on_plane(intersect_point_2d)
+                    intersect_point.w = pointer_index
+                    temp_shape.insert(tri_indices[1], intersect_point)
+                    temp_vv.insert(square_indices[1], intersect_point)
+                    pointer_index += 2
+        shape = Shape(temp_shape)
+        viewport_vertices = copy.copy(temp_vv)
+        # step two - kinda more annoying to add flags, so double pointer, and add 1 or 0
+
+        if Vec2.is_in_triangle(
+            Vec2(0, 0),
+            shape.vertices[0],
+            shape.vertices[1],
+            shape.vertices[1],
+        ):
+            entry = False
+        else:
+            entry = True
+        temp = []
+
+        for vertice in viewport_vertices:
+            curr = vertice
+            if curr.w >= 2:
+                if entry:
+                    curr.w += 1
+                entry = not entry
+            temp.append(curr)
+        viewport_vertices = temp
+
+        # do the same for the triangle
+        if (
+            0 < shape.vertices[0].x < screen_width
+            and 0 < shape.vertices[0].y < screen_heigth
+        ):
+            entry = False
+        else:
+            entry = True
+        temp = []
+        for vertice in shape.vertices:
+            curr = vertice
+            if curr.w >= 2:
+                if entry:
+                    curr.w += 1
+                entry = not entry
+            temp.append(curr)
+        shape.vertices = temp
+
+        # In the third phase, the result is generated.
+        # The algorithm starts at an unprocessed intersection
+        beginning_pointer = -1
+        direction = True
+        for index in range(len(viewport_vertices)):
+            if viewport_vertices[index].w >= 2:
+                # and picks the direction of traversal based on the entry/exit flag:
+                direction = (
+                    False if viewport_vertices[index].w % 2 == 1 else True
+                )
+                beginning_pointer = viewport_vertices[index].w - (
+                    viewport_vertices[index].w % 2
+                )
+                break
+        dowhile = True
+        # for an entry intersection it traverses forward, and for an exit intersection it traverses in reverse.
+        while (
+            viewport_vertices[index].w - (viewport_vertices[index].w % 2)
+            != beginning_pointer
+        ) or dowhile:
+            dowhile = False
+
+            new_shape.add_vertice(viewport_vertices[index])
+            if direction:
+                index += 1
+            else:
+                index -= 1
+            index %= len(viewport_vertices)
+            # no do while moment
+            while viewport_vertices[index].w < 2:
+                # Vertices are added to the result until the next intersection is found;
+                new_shape.add_vertice(viewport_vertices[index])
+                if direction:
+                    index += 1
+                else:
+                    index -= 1
+                index %= len(viewport_vertices)
+            # the algorithm then switches to the corresponding intersection vertex in the other polygon
+            curr_pointer = viewport_vertices[index].w - (
+                viewport_vertices[index].w % 2
+            )
+
+            for index in range(len(shape.vertices)):
+                if (
+                    shape.vertices[index].w - (shape.vertices[index].w % 2)
+                    == curr_pointer
+                ):
+                    # and picks the traversal direction again using the same rule.
+                    direction = (
+                        False if shape.vertices[index].w % 2 == 1 else True
+                    )
+                    break
+
+            new_shape.add_vertice(shape.vertices[index])
+            if direction:
+                index += 1
+            else:
+                index -= 1
+            index %= len(shape.vertices)
+            # no do while moment
+            while shape.vertices[index].w < 2:
+                # Vertices are added to the result until the next intersection is found;
+                new_shape.add_vertice(shape.vertices[index])
+                if direction:
+                    index += 1
+                else:
+                    index -= 1
+                index %= len(shape.vertices)
+
+            for index in range(len(viewport_vertices)):
+                if (
+                    viewport_vertices[index].w
+                    - (viewport_vertices[index].w % 2)
+                    == curr_pointer
+                ):
+                    # and picks the traversal direction again using the same rule.
+                    direction = (
+                        False if shape.vertices[index].w % 2 == 1 else True
+                    )
+                    break
+        # If the next intersection has already been processed,
+        # the algorithm finishes the current component of the output and starts again from an unprocessed intersection.
+        # The output is complete when there are no more unprocessed intersections.
 
 
 class Mat4:
@@ -782,98 +958,24 @@ class Camera:
                 else:
                     new_shape = Shape([])
                     # find a plane of the triangle and place square vertices on it
-                    r = Vec3(
-                        shape.vertices[0].x,
-                        shape.vertices[0].y,
-                        shape.vertices[0].z,
-                    )
-                    p = Vec3(
-                        shape.vertices[1].x,
-                        shape.vertices[1].y,
-                        shape.vertices[1].z,
-                    )
-                    q = Vec3(
-                        shape.vertices[2].x,
-                        shape.vertices[2].y,
-                        shape.vertices[2].z,
-                    )
-                    normal = (r - p).cross(q - p)
-
-                    def place_on_plane(t_point: Vec2) -> Vec4:
-                        new_z = (
-                            (
-                                normal.x * (t_point.x - r.x)
-                                + normal.y * (t_point.y - r.y)
-                            )
-                            / (-normal.z)
-                        ) + r.z
-                        return Vec4(t_point.x, t_point.y, new_z, 1)
 
                     viewport_vertices = [
-                        place_on_plane(0, 0),
-                        place_on_plane(0, screen_heigth),
-                        place_on_plane(screen_width, screen_heigth),
-                        place_on_plane(screen_width, 0),
+                        Vec3.place_on_plane(Vec2(0, 0),shape.vertices[0],shape.vertices[1],shape.vertices[2]),
+                        Vec3.place_on_plane(Vec2(0, screen_heigth),shape.vertices[0],shape.vertices[1],shape.vertices[2]),
+                        Vec3.place_on_plane(Vec2(screen_width, screen_heigth),shape.vertices[0],shape.vertices[1],shape.vertices[2]),
+                        Vec3.place_on_plane(Vec2(screen_width, 0),shape.vertices[0],shape.vertices[1],shape.vertices[2]),
                     ]
-                    # Greiner-Hormann algo, for the pointers we're using .w
-                    # step one from wikipedia
-                    pointer_index = 2
-                    for square_indices in zip([0, 1, 2, 3], [1, 2, 3, 0]):
-                        sq_beg = viewport_vertices[square_indices[0]]
-                        sq_end = viewport_vertices[square_indices[1]]
-                        for tri_points in zip([0, 1, 2], [1, 2, 0]):
-                            tri_beg = shape.vertices[tri_points[0]]
-                            tri_end = shape.vertices[tri_points[1]]
-                            if Vec2.intersect(
-                                sq_beg, sq_end, tri_beg, tri_end
-                            ):
-                                intersect_point_2d = Vec2.intersection_point(
-                                    sq_beg, sq_end, tri_beg, tri_end
-                                )
-                                intersect_point = place_on_plane(
-                                    intersect_point_2d
-                                )
-                                intersect_point.w = pointer_index
-                                shape.insert_vertice(
-                                    intersect_point, tri_points[1]
-                                )
-                                viewport_vertices.insert(
-                                    square_indices[1], intersect_point
-                                )
-                                pointer_index += 2
-                    # step two - kinda more annoying to add flags, so double pointer, and add 1 or 0
-                    if Vec2.is_in_triangle(
-                        Vec2(0, 0),
-                        shape.vertices[0],
-                        shape.vertices[1],
-                        shape.vertices[1],
-                    ):
-                        entry = False
-                    else:
-                        entry = True
-                    for vertice in viewport_vertices:
-                        if vertice.w >= 2:
-                            if entry:
-                                vertice.w =+ 1
-                            entry = not entry
-                    # do the same for the triangle
-                    if (
-                        0 < shape.vertices[0].x < screen_width
-                        and 0 < shape.vertices[0].y < screen_heigth
-                    ):
-                        entry = False
-                    else:
-                        entry = True
-                    for vertice in shape.vertices:
-                        if vertice.w >= 2:
-                            if entry:
-                                vertice.w =+ 1
-                            entry = not entry
-                    # then compute the output polygon. Nice. Probably something will break, so take care of that lol
-                    # also, reconsider putting triangle splitter later, like right below us, if we can handle polygons
-                    
-                    
+
+                    for vv in viewport_vertices:
+                        vv = Vec4(vv.x, vv.y, vv.z, 1)
+                    for vv in viewport_vertices:
+                        print(vv)
+                    new_shape = Vec4.compute_shape_intersection(
+                        viewport_vertices, shape.vertices
+                    )
+
                     try:
+                        # consider putting triangle splitter from up there right below us, if we can handle polygons
                         triangles = new_shape.decompose_to_triangles()
                         # 6. Add the resulting list to results
                         result.extend(triangles)
