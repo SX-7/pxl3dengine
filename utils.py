@@ -113,6 +113,21 @@ class Vec2:
             A, B, C
         ) != Vec2.ccw(A, B, D)
 
+    @staticmethod
+    def is_in_triangle(point, A, B, C):
+        return not (
+            (
+                (not Vec2.ccw(point, A, B))
+                or (not Vec2.ccw(point, B, C))
+                or (not Vec2.ccw(point, C, A))
+            )
+            and (
+                Vec2.ccw(point, A, B)
+                or Vec2.ccw(point, B, C)
+                or Vec2.ccw(point, C, A)
+            )
+        )
+
 
 class Mat3:
     pass
@@ -791,11 +806,13 @@ class Camera:
                             quadrants["center"] = True
                         positions.append(quadrants)
                     # 3. If 1 shares no quadrants with 0, run line intersection calculations
-                    for data in zip([0, 1, 2], [1, 2, 0]):
+                    for data in zip([0, 1, 2], [1, 2, 0], [2, 0, 1]):
                         curr = data[0]
                         cont = data[1]
+                        oppo = data[2]
                         if positions[curr]["center"]:
                             new_shape.add_vertice(shape.vertices[curr])
+
                         if not (
                             (
                                 positions[curr]["left"]
@@ -818,6 +835,36 @@ class Camera:
                                 and positions[cont]["center"]
                             )
                         ):
+                            if positions[cont]["center"]:
+                                if Vec2.is_in_triangle(
+                                    Vec2(0, 0),
+                                    shape.vertices[curr],
+                                    shape.vertices[cont],
+                                    shape.vertices[oppo],
+                                ):
+                                    new_shape.add_vertice(Vec4(0,0,0.5,1))
+                                elif Vec2.is_in_triangle(
+                                    Vec2(0, screen_heigth),
+                                    shape.vertices[curr],
+                                    shape.vertices[cont],
+                                    shape.vertices[oppo],
+                                ):
+                                    new_shape.add_vertice(Vec4(0,screen_heigth,0.5,1))
+                                elif Vec2.is_in_triangle(
+                                    Vec2(screen_width, screen_heigth),
+                                    shape.vertices[curr],
+                                    shape.vertices[cont],
+                                    shape.vertices[oppo],
+                                ):
+                                    new_shape.add_vertice(Vec4(screen_width,screen_heigth,0.5,1))
+                                elif Vec2.is_in_triangle(
+                                    Vec2(screen_width, 0),
+                                    shape.vertices[curr],
+                                    shape.vertices[cont],
+                                    shape.vertices[oppo],
+                                ):
+                                    new_shape.add_vertice(Vec4(screen_width,0,0.5,1))
+
                             # in order defined by source and end quadrants, adding resulting points to the
                             # result shape (in proper order)
                             def le_in(point1: Vec4, point2: Vec4):
@@ -909,9 +956,6 @@ class Camera:
                                 return False, Vec4(0, 0, 0, 0)
 
                             calculations = []
-                            # 2 issues:
-                            # 1, we're only checking the curr, meaning the lines that go back are not checked
-                            # 2. for some reason calculations are wrong and are giving us False
                             if positions[curr]["left"]:
                                 calculations.append(le_in)
                                 if positions[curr]["top"]:
