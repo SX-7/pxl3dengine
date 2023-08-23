@@ -760,6 +760,8 @@ class Camera:
                         result.append(shape)
             # clip triangles
             elif shape.count == 3:
+                # my recommendation: look at clipping algos on wikipedia.
+                # Also check out computational geometry, and painter's algorithm
                 if (
                     0 < shape.vertices[0].x < screen_width
                     and 0 < shape.vertices[0].y < screen_heigth
