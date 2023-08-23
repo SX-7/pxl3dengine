@@ -41,7 +41,7 @@ class Shape:
         self.count = len(vertices)
 
     def insert_vertice(self, vertice: Vec4, index: int) -> None:
-        self.vertices.insert(index,vertice)
+        self.vertices.insert(index, vertice)
         self.count = len(self.vertices)
 
     def add_vertice(self, vertice: Vec4) -> None:
@@ -116,11 +116,11 @@ class Vec2:
         return Vec2.ccw(A, C, D) != Vec2.ccw(B, C, D) and Vec2.ccw(
             A, B, C
         ) != Vec2.ccw(A, B, D)
-        
+
     @staticmethod
-    def intersection_point(A,B,C,D) -> bool|Vec4:
+    def intersection_point(A, B, C, D) -> bool | Vec4:
         raise NotImplemented
-    
+
     @staticmethod
     def is_in_triangle(point, A, B, C):
         return not (
@@ -816,20 +816,50 @@ class Camera:
                         place_on_plane(screen_width, 0),
                     ]
                     # Greiner-Hormann algo, for the pointers we're using .w
-                    pointer_index = 0
-                    for square_indices in zip([0,1,2,3],[1,2,3,0]):
+                    # step one from wikipedia
+                    pointer_index = 2
+                    for square_indices in zip([0, 1, 2, 3], [1, 2, 3, 0]):
                         sq_beg = viewport_vertices[square_indices[0]]
                         sq_end = viewport_vertices[square_indices[1]]
-                        for tri_points in zip([0,1,2],[1,2,0]):
+                        for tri_points in zip([0, 1, 2], [1, 2, 0]):
                             tri_beg = shape.vertices[tri_points[0]]
                             tri_end = shape.vertices[tri_points[1]]
-                            if Vec2.intersect(sq_beg,sq_end,tri_beg,tri_end):
-                                intersect_point_2d = Vec2.intersection_point(sq_beg,sq_end,tri_beg,tri_end)
-                                intersect_point = place_on_plane(intersect_point_2d)
+                            if Vec2.intersect(
+                                sq_beg, sq_end, tri_beg, tri_end
+                            ):
+                                intersect_point_2d = Vec2.intersection_point(
+                                    sq_beg, sq_end, tri_beg, tri_end
+                                )
+                                intersect_point = place_on_plane(
+                                    intersect_point_2d
+                                )
                                 intersect_point.w = pointer_index
-                                shape.insert_vertice(intersect_point,tri_points[1])
-                                viewport_vertices.insert(square_indices[1],intersect_point)
-                                pointer_index += 1
+                                shape.insert_vertice(
+                                    intersect_point, tri_points[1]
+                                )
+                                viewport_vertices.insert(
+                                    square_indices[1], intersect_point
+                                )
+                                pointer_index += 2
+                    # step two - kinda more annoying to add flags, maybe double pointer, and add 1 or 0
+                    if Vec2.is_in_triangle(
+                        Vec2(0, 0),
+                        shape.vertices[0],
+                        shape.vertices[1],
+                        shape.vertices[1],
+                    ):
+                        entry = False
+                    else:
+                        entry = True
+                    
+                    # this is actually wrong, we should go from Vec2(0,0), and in the square, not triangle
+                    for vertice in shape.vertices:
+                        if vertice.w >= 2:
+                            # now assign the flag
+                    # do the same for the square
+                    
+                    # then compute the output polygon. Nice. Probably something will break, so take care of that lol
+                    # also, reconsider putting triangle splitter later, like right below us, if we can handle polygons
                     
                     try:
                         triangles = new_shape.decompose_to_triangles()
