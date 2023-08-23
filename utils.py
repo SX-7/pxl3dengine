@@ -40,6 +40,10 @@ class Shape:
         self.vertices: list[Vec4] = vertices
         self.count = len(vertices)
 
+    def insert_vertice(self, vertice: Vec4, index: int) -> None:
+        self.vertices.insert(index,vertice)
+        self.count = len(self.vertices)
+
     def add_vertice(self, vertice: Vec4) -> None:
         self.vertices.append(vertice)
         self.count = len(self.vertices)
@@ -112,7 +116,11 @@ class Vec2:
         return Vec2.ccw(A, C, D) != Vec2.ccw(B, C, D) and Vec2.ccw(
             A, B, C
         ) != Vec2.ccw(A, B, D)
-
+        
+    @staticmethod
+    def intersection_point(A,B,C,D) -> bool|Vec4:
+        raise NotImplemented
+    
     @staticmethod
     def is_in_triangle(point, A, B, C):
         return not (
@@ -772,272 +780,57 @@ class Camera:
                 ):
                     result.append(shape)
                 else:
-                    # a triangle can (potentially) have 3 edges outside the screen,
-                    # and still cover the entire, or almost entire screen. Thus,
-                    # the only solution is to have an intersection, set-theory-like
-                    # it is sadly not possible to use already existing solutions
-                    # though, as we also need the Z coordinate for later...
-                    # Ok, so:
-                    # 1. Calculate which parts each vertice belongs in.
-                    # top,bottom,right,left,center, can be in two at once (like corners)
                     new_shape = Shape([])
-                    positions = []
-                    for i in range(3):
-                        quadrants = {
-                            "left": False,
-                            "top": False,
-                            "right": False,
-                            "bot": False,
-                            "center": False,
-                        }
-                        if shape.vertices[i].x < 0:
-                            quadrants["left"] = True
-                        if shape.vertices[i].x > screen_width:
-                            quadrants["right"] = True
-                        if shape.vertices[i].y < 0:
-                            quadrants["top"] = True
-                        if shape.vertices[i].y > screen_heigth:
-                            quadrants["bot"] = True
-                        # 2. If 0 is in center, add it to resulting shape
-                        if not (
-                            quadrants["bot"]
-                            or quadrants["left"]
-                            or quadrants["right"]
-                            or quadrants["top"]
-                        ):
-                            quadrants["center"] = True
-                        positions.append(quadrants)
-                    # 3. If 1 shares no quadrants with 0, run line intersection calculations
-                    for data in zip([0, 1, 2], [1, 2, 0], [2, 0, 1]):
-                        curr = data[0]
-                        cont = data[1]
-                        oppo = data[2]
-                        if positions[curr]["center"]:
-                            new_shape.add_vertice(shape.vertices[curr])
+                    # find a plane of the triangle and place square vertices on it
+                    r = Vec3(
+                        shape.vertices[0].x,
+                        shape.vertices[0].y,
+                        shape.vertices[0].z,
+                    )
+                    p = Vec3(
+                        shape.vertices[1].x,
+                        shape.vertices[1].y,
+                        shape.vertices[1].z,
+                    )
+                    q = Vec3(
+                        shape.vertices[2].x,
+                        shape.vertices[2].y,
+                        shape.vertices[2].z,
+                    )
+                    normal = (r - p).cross(q - p)
 
-                        if not (
+                    def place_on_plane(t_point: Vec2) -> Vec4:
+                        new_z = (
                             (
-                                positions[curr]["left"]
-                                and positions[cont]["left"]
+                                normal.x * (t_point.x - r.x)
+                                + normal.y * (t_point.y - r.y)
                             )
-                            or (
-                                positions[curr]["right"]
-                                and positions[cont]["right"]
-                            )
-                            or (
-                                positions[curr]["top"]
-                                and positions[cont]["top"]
-                            )
-                            or (
-                                positions[curr]["bot"]
-                                and positions[cont]["bot"]
-                            )
-                            or (
-                                positions[curr]["center"]
-                                and positions[cont]["center"]
-                            )
-                        ):
-                            if positions[cont]["center"]:
-                                if Vec2.is_in_triangle(
-                                    Vec2(0, 0),
-                                    shape.vertices[curr],
-                                    shape.vertices[cont],
-                                    shape.vertices[oppo],
-                                ):
-                                    new_shape.add_vertice(Vec4(0,0,0.5,1))
-                                elif Vec2.is_in_triangle(
-                                    Vec2(0, screen_heigth),
-                                    shape.vertices[curr],
-                                    shape.vertices[cont],
-                                    shape.vertices[oppo],
-                                ):
-                                    new_shape.add_vertice(Vec4(0,screen_heigth,0.5,1))
-                                elif Vec2.is_in_triangle(
-                                    Vec2(screen_width, screen_heigth),
-                                    shape.vertices[curr],
-                                    shape.vertices[cont],
-                                    shape.vertices[oppo],
-                                ):
-                                    new_shape.add_vertice(Vec4(screen_width,screen_heigth,0.5,1))
-                                elif Vec2.is_in_triangle(
-                                    Vec2(screen_width, 0),
-                                    shape.vertices[curr],
-                                    shape.vertices[cont],
-                                    shape.vertices[oppo],
-                                ):
-                                    new_shape.add_vertice(Vec4(screen_width,0,0.5,1))
+                            / (-normal.z)
+                        ) + r.z
+                        return Vec4(t_point.x, t_point.y, new_z, 1)
 
-                            # in order defined by source and end quadrants, adding resulting points to the
-                            # result shape (in proper order)
-                            def le_in(point1: Vec4, point2: Vec4):
-                                if Vec2.intersect(
-                                    Vec2(point1.x, point1.y),
-                                    Vec2(point2.x, point2.y),
-                                    Vec2(0, 0),
-                                    Vec2(0, screen_heigth),
-                                ):
-                                    if point1.x <= 0:
-                                        diff = point1 - point2
-                                        ratio = point2.x / diff.x
-                                        diff = diff * ratio
-                                        new_point = point2 - diff
-                                    else:
-                                        diff = point2 - point1
-                                        ratio = point1.x / diff.x
-                                        diff = diff * ratio
-                                        new_point = point1 - diff
-                                    return True, new_point
-                                return False, Vec4(0, 0, 0, 0)
-
-                            def ri_in(point1: Vec4, point2: Vec4):
-                                if Vec2.intersect(
-                                    Vec2(point1.x, point1.y),
-                                    Vec2(point2.x, point2.y),
-                                    Vec2(screen_width, 0),
-                                    Vec2(screen_width, screen_heigth),
-                                ):
-                                    if point1.x >= screen_width:
-                                        diff = point1 - point2
-                                        ratio = (
-                                            screen_width - point2.x
-                                        ) / diff.x
-                                        diff = diff * ratio
-                                        new_point = point2 + diff
-                                    else:
-                                        diff = point2 - point1
-                                        ratio = (
-                                            screen_width - point1.x
-                                        ) / diff.x
-                                        diff = diff * ratio
-                                        new_point = point1 + diff
-                                    return True, new_point
-                                return False, Vec4(0, 0, 0, 0)
-
-                            def to_in(point1: Vec4, point2: Vec4):
-                                if Vec2.intersect(
-                                    Vec2(point1.x, point1.y),
-                                    Vec2(point2.x, point2.y),
-                                    Vec2(0, 0),
-                                    Vec2(screen_width, 0),
-                                ):
-                                    if point1.y <= 0:
-                                        diff = point1 - point2
-                                        ratio = point2.y / diff.y
-                                        diff = diff * ratio
-                                        new_point = point2 - diff
-                                    else:
-                                        diff = point2 - point1
-                                        ratio = point1.y / diff.y
-                                        diff = diff * ratio
-                                        new_point = point1 - diff
-                                    return True, new_point
-                                return False, Vec4(0, 0, 0, 0)
-
-                            def bo_in(point1: Vec4, point2: Vec4):
-                                if Vec2.intersect(
-                                    Vec2(point1.x, point1.y),
-                                    Vec2(point2.x, point2.y),
-                                    Vec2(0, screen_heigth),
-                                    Vec2(screen_width, screen_heigth),
-                                ):
-                                    if point1.y >= screen_heigth:
-                                        diff = point1 - point2
-                                        ratio = (
-                                            screen_heigth - point2.y
-                                        ) / diff.y
-                                        diff = diff * ratio
-                                        new_point = point2 + diff
-                                    else:
-                                        diff = point2 - point1
-                                        ratio = (
-                                            screen_heigth - point1.y
-                                        ) / diff.y
-                                        diff = diff * ratio
-                                        new_point = point1 + diff
-                                    return True, new_point
-                                return False, Vec4(0, 0, 0, 0)
-
-                            calculations = []
-                            if positions[curr]["left"]:
-                                calculations.append(le_in)
-                                if positions[curr]["top"]:
-                                    calculations.append(to_in)
-                                    calculations.append(bo_in)
-                                else:
-                                    calculations.append(bo_in)
-                                    calculations.append(to_in)
-                                calculations.append(ri_in)
-                            elif positions[curr]["top"]:
-                                calculations.append(to_in)
-                                if positions[curr]["right"]:
-                                    calculations.append(ri_in)
-                                    calculations.append(le_in)
-                                else:
-                                    calculations.append(le_in)
-                                    calculations.append(ri_in)
-                                calculations.append(bo_in)
-                            elif positions[curr]["right"]:
-                                calculations.append(ri_in)
-                                if positions[curr]["bot"]:
-                                    calculations.append(bo_in)
-                                    calculations.append(to_in)
-                                else:
-                                    calculations.append(to_in)
-                                    calculations.append(bo_in)
-                                calculations.append(le_in)
-                            elif positions[curr]["bot"]:
-                                calculations.append(bo_in)
-                                if positions[curr]["left"]:
-                                    calculations.append(le_in)
-                                    calculations.append(ri_in)
-                                else:
-                                    calculations.append(ri_in)
-                                    calculations.append(le_in)
-                                calculations.append(to_in)
-                            elif positions[cont]["left"]:
-                                calculations.append(le_in)
-                                if positions[cont]["top"]:
-                                    calculations.append(to_in)
-                                    calculations.append(bo_in)
-                                else:
-                                    calculations.append(bo_in)
-                                    calculations.append(to_in)
-                                calculations.append(ri_in)
-                            elif positions[cont]["top"]:
-                                calculations.append(to_in)
-                                if positions[cont]["right"]:
-                                    calculations.append(ri_in)
-                                    calculations.append(le_in)
-                                else:
-                                    calculations.append(le_in)
-                                    calculations.append(ri_in)
-                                calculations.append(bo_in)
-                            elif positions[cont]["right"]:
-                                calculations.append(ri_in)
-                                if positions[cont]["bot"]:
-                                    calculations.append(bo_in)
-                                    calculations.append(to_in)
-                                else:
-                                    calculations.append(to_in)
-                                    calculations.append(bo_in)
-                                calculations.append(le_in)
-                            elif positions[cont]["bot"]:
-                                calculations.append(bo_in)
-                                if positions[cont]["left"]:
-                                    calculations.append(le_in)
-                                    calculations.append(ri_in)
-                                else:
-                                    calculations.append(ri_in)
-                                    calculations.append(le_in)
-                                calculations.append(to_in)
-                            for func in calculations:
-                                intersected, at_point = func(
-                                    shape.vertices[curr], shape.vertices[cont]
-                                )
-                                if intersected:
-                                    new_shape.add_vertice(at_point)
-                    # 4. Repeat for 1 and 2, and 2 and 0
-                    # 5. Run triangle splitter on the resulting polygon
+                    viewport_vertices = [
+                        place_on_plane(0, 0),
+                        place_on_plane(0, screen_heigth),
+                        place_on_plane(screen_width, screen_heigth),
+                        place_on_plane(screen_width, 0),
+                    ]
+                    # Greiner-Hormann algo, for the pointers we're using .w
+                    pointer_index = 0
+                    for square_indices in zip([0,1,2,3],[1,2,3,0]):
+                        sq_beg = viewport_vertices[square_indices[0]]
+                        sq_end = viewport_vertices[square_indices[1]]
+                        for tri_points in zip([0,1,2],[1,2,0]):
+                            tri_beg = shape.vertices[tri_points[0]]
+                            tri_end = shape.vertices[tri_points[1]]
+                            if Vec2.intersect(sq_beg,sq_end,tri_beg,tri_end):
+                                intersect_point_2d = Vec2.intersection_point(sq_beg,sq_end,tri_beg,tri_end)
+                                intersect_point = place_on_plane(intersect_point_2d)
+                                intersect_point.w = pointer_index
+                                shape.insert_vertice(intersect_point,tri_points[1])
+                                viewport_vertices.insert(square_indices[1],intersect_point)
+                                pointer_index += 1
+                    
                     try:
                         triangles = new_shape.decompose_to_triangles()
                         # 6. Add the resulting list to results
