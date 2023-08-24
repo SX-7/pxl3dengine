@@ -1,4 +1,6 @@
 /.venv
 /__pycache__
 /.pytest_cache
-/.vscode/*
+/.vscode
+/__pycache__
+/tests/unit/__pycache__
