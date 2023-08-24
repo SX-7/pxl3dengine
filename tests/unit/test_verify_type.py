@@ -2,7 +2,7 @@ import pytest
 import logging
 from utils import Vec4, Shape, _verify_type
 
-logger = logging.getLogger("__Vec4__")
+logger = logging.getLogger("___verify_type__")
 logger.setLevel(logging.INFO)
 
 def test_error_raising():

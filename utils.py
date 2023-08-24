@@ -305,6 +305,14 @@ class Vec4:
         self.z: float = float(z)
         self.w: float = float(w)
 
+    def __eq__(self, __value: object) -> bool:
+        return (
+            self.x == __value.x
+            and self.y == __value.y
+            and self.z == __value.z
+            and self.w == __value.w
+        )
+
     def __str__(self) -> str:
         return f"Vec4({self.x}, {self.y}, {self.z}, {self.w})"
 
@@ -381,10 +389,7 @@ class Vec4:
         return result
 
     @staticmethod
-    def compute_shape_intersection(
-        subject_poly: list[Vec4], clip_poly: list[Vec4]
-    ):
-        """Requires CCW shapes"""
+    def shape_intersection(subject_poly: list[Vec4], clip_poly: list[Vec4]):
         import copy
 
         output_list = copy.copy(subject_poly)
@@ -409,7 +414,7 @@ class Vec4:
                 elif Vec2.ccw(clip_begin, clip_end, prev_point):
                     output_list.append(inter_point)
 
-        return Shape(output_list)
+        return output_list
 
 
 class Mat4:

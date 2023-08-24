@@ -1,8 +1,7 @@
-import pytest
 import logging
 from utils import Vec3, Vec2
 
-logger = logging.getLogger("__Vec4__")
+logger = logging.getLogger("__Vec3__")
 logger.setLevel(logging.INFO)
 
 

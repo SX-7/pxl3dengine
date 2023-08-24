@@ -1,8 +1,7 @@
-import pytest
 import logging
 from utils import Vec4, Shape
 
-logger = logging.getLogger("__Vec4__")
+logger = logging.getLogger("__Shape__")
 logger.setLevel(logging.INFO)
 
 def test_Shape___init__():
