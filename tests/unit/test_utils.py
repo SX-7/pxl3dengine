@@ -1,9 +1,15 @@
 import pytest
 import logging
-from utils import Vec4, Shape
+from utils import Vec4, Shape, _verify_type
 
 logger = logging.getLogger("__Vec4__")
 logger.setLevel(logging.INFO)
+
+def test_verify_type():
+    with pytest.raises(TypeError):
+        _verify_type(Vec4(1,2,3,4),bool,str,float)
+    index = _verify_type(Vec4(1,2,3,4),bool,Shape,Vec4,float,int)
+    assert index == 2
 
 
 def test_compute_shape_intersection():
