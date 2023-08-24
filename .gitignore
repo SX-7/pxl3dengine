@@ -4,3 +4,5 @@
 /.vscode
 /__pycache__
 /tests/unit/__pycache__
+.coverage
+cov.xml
