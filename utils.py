@@ -87,6 +87,9 @@ class Vec2:
         self.x: float = float(x)
         self.y: float = float(y)
 
+    def __eq__(self, __value: object) -> bool:
+        return self.x==__value.x and self.y==__value.y
+
     def __str__(self) -> str:
         return f"Vec2({self.x}, {self.y})"
 
