@@ -88,7 +88,7 @@ class Vec2:
         self.y: float = float(y)
 
     def __eq__(self, __value: object) -> bool:
-        return self.x==__value.x and self.y==__value.y
+        return self.x == __value.x and self.y == __value.y
 
     def __str__(self) -> str:
         return f"Vec2({self.x}, {self.y})"
@@ -116,14 +116,14 @@ class Vec2:
     # https://gist.github.com/alexcpn/45c5026397e11751583891831cc36456
     @staticmethod
     def intersect(A, B, C, D):
-        '''Works for infinitely long lines'''
+        """Works for infinitely long lines"""
         return Vec2.ccw(A, C, D) != Vec2.ccw(B, C, D) and Vec2.ccw(
             A, B, C
         ) != Vec2.ccw(A, B, D)
 
     @staticmethod
     def intersection_point(A, B, C, D):
-        '''Works for infinitely long lines'''
+        """Works for infinitely long lines"""
         xdiff = Vec2(A.x - B.x, C.x - D.x)
         ydiff = Vec2(A.y - B.y, C.y - D.y)
 
@@ -164,6 +164,11 @@ class Vec3:
         self.x: float = float(x)
         self.y: float = float(y)
         self.z: float = float(z)
+
+    def __eq__(self, __value: object) -> bool:
+        return (
+            self.x == __value.x and self.y == __value.y and self.z == __value.z
+        )
 
     def __str__(self) -> str:
         return f"Vec3({self.x}, {self.y}, {self.z})"
@@ -242,7 +247,7 @@ class Vec3:
             (normal.x * (t_point.x - A.x) + normal.y * (t_point.y - A.y))
             / (-normal.z)
         ) + A.z
-        return Vec4(t_point.x, t_point.y, new_z, 1)
+        return Vec3(t_point.x, t_point.y, new_z)
 
 
 class Mat3:
@@ -392,9 +397,7 @@ class Vec4:
             output_list = []
             for subject_index in range(len(input_list)):
                 curr_point = input_list[subject_index]
-                prev_point = input_list[
-                    (subject_index - 1) % len(input_list)
-                ]
+                prev_point = input_list[(subject_index - 1) % len(input_list)]
                 inter_point = Vec2.intersection_point(
                     clip_begin, clip_end, curr_point, prev_point
                 )  # make one for infinite length

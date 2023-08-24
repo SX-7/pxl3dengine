@@ -45,4 +45,23 @@ def test_intersection_point():
     B = Vec2(0, 0)
     C = Vec2(-5, 5)
     D = Vec2(5, 5)
+    # overlap
     assert Vec2.intersection_point(A,B,C,D) == Vec2(0,5)
+    # edge
+    assert Vec2.intersection_point(A,B,A,Vec2(10,10)) == A
+    # outside the edge
+    assert Vec2.intersection_point(A,B,C,Vec2(-2,5)) == Vec2(0,5)
+    # double extensions
+    assert Vec2.intersection_point(A,Vec2(0,8),C,Vec2(-2,5)) == Vec2(0,5)
+    assert not Vec2.intersection_point(A,B,A,B) 
+    assert not Vec2.intersection_point(A,A,A,A)
+    assert not Vec2.intersection_point(A,A,A,B)
+    
+def test_is_in_triangle():
+    A = Vec2(0, 10)
+    B = Vec2(0, 0)
+    C = Vec2(-5, 5)
+    D = Vec2(5, 5)
+    assert not Vec2.is_in_triangle(D,A,B,C)
+    assert Vec2.is_in_triangle(A,A,B,C)
+    assert Vec2.is_in_triangle(Vec2(-2,5),A,B,C)
