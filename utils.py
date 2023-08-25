@@ -407,11 +407,23 @@ class Vec4:
                     clip_begin, clip_end, curr_point, prev_point
                 )  # make one for infinite length
 
-                if Vec2.ccw(clip_begin, clip_end, curr_point):
-                    if Vec2.ccw(clip_begin, clip_end, prev_point):
+                if Vec2.ccw(
+                    clip_begin,
+                    clip_end,
+                    clip_poly[(clip_index + 2) % len(clip_poly)],
+                ) == Vec2.ccw(clip_begin, clip_end, curr_point):
+                    if Vec2.ccw(
+                        clip_begin,
+                        clip_end,
+                        clip_poly[(clip_index + 2) % len(clip_poly)],
+                    ) != Vec2.ccw(clip_begin, clip_end, prev_point):
                         output_list.append(inter_point)
                     output_list.append(curr_point)
-                elif Vec2.ccw(clip_begin, clip_end, prev_point):
+                elif Vec2.ccw(
+                        clip_begin,
+                        clip_end,
+                        clip_poly[(clip_index + 2) % len(clip_poly)],
+                    ) == Vec2.ccw(clip_begin, clip_end, prev_point):
                     output_list.append(inter_point)
 
         return output_list
