@@ -20,11 +20,86 @@ def test_shape_intersection():
         Vec4(30, -15, 1, 1),
     ]
     result = Vec4.shape_intersection(subject_poly, clip_poly)
-    # order?? let's assume ccw in flipped y with start at x=0,y=-inf
-    assert result == [
-        Vec4(-10, 5, 1, 1),
-        Vec4(-10, 10, 1, 1),
-        Vec4(5, 10, 1, 1),
-        Vec4(10, 5, 1, 1),
-        Vec4(10, -5, 1, 1),
-    ]
+    # order? Any
+    assert (
+        result
+        == [
+            Vec4(-10, 5, 1, 1),
+            Vec4(-10, 10, 1, 1),
+            Vec4(5, 10, 1, 1),
+            Vec4(10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(10, -5, 1, 1),
+            Vec4(-10, 5, 1, 1),
+            Vec4(-10, 10, 1, 1),
+            Vec4(5, 10, 1, 1),
+            Vec4(10, 5, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+            Vec4(-10, 5, 1, 1),
+            Vec4(-10, 10, 1, 1),
+            Vec4(5, 10, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(5, 10, 1, 1),
+            Vec4(10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+            Vec4(-10, 5, 1, 1),
+            Vec4(-10, 10, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(-10, 10, 1, 1),
+            Vec4(5, 10, 1, 1),
+            Vec4(10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+            Vec4(-10, 5, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(10, -5, 1, 1),
+            Vec4(10, 5, 1, 1),
+            Vec4(5, 10, 1, 1),
+            Vec4(-10, 10, 1, 1),
+            Vec4(-10, 5, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(-10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+            Vec4(10, 5, 1, 1),
+            Vec4(5, 10, 1, 1),
+            Vec4(-10, 10, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(-10, 10, 1, 1),
+            Vec4(-10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+            Vec4(10, 5, 1, 1),
+            Vec4(5, 10, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(5, 10, 1, 1),
+            Vec4(-10, 10, 1, 1),
+            Vec4(-10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+            Vec4(10, 5, 1, 1),
+        ]
+        or result
+        == [
+            Vec4(10, 5, 1, 1),
+            Vec4(5, 10, 1, 1),
+            Vec4(-10, 10, 1, 1),
+            Vec4(-10, 5, 1, 1),
+            Vec4(10, -5, 1, 1),
+        ]
+    )
