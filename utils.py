@@ -589,9 +589,7 @@ class Camera:
         )
         result = []
         for point in shape.vertices:
-            print(point)
             point = world_matrix * point
-            print(point)
             point = view_matrix * point
             print(point)
             point = perspective_matrix * point
@@ -609,9 +607,9 @@ class Camera:
                 point += Vec4(1, 1, 0, 0)
                 point.x *= screen_width / 2
                 point.y *= screen_heigth / 2
-                print(point)
                 result.append(point)
-        return Shape(result)
+        if len(result) > 0:
+            return Shape(result)
 
 
 def speed_test(func):

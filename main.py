@@ -122,18 +122,18 @@ class App:
         # process pixel's positions
         self.screen_shapes = []
         for shape in self.shape_data:
-            self.screen_shapes.append(
-                self.camera.get(
-                    shape,
-                    camera_pos=self.camera_position,
-                    screen_heigth=px.height,
-                    screen_width=px.width,
-                    rotation=self.object_rotation,
-                    camera_front=self.camera_front,
-                    world_up=self.world_up,
-                    pov=self.pov,
-                )
+            sh = self.camera.get(
+                shape,
+                camera_pos=self.camera_position,
+                screen_heigth=px.height,
+                screen_width=px.width,
+                rotation=self.object_rotation,
+                camera_front=self.camera_front,
+                world_up=self.world_up,
+                pov=self.pov,
             )
+            if sh:
+                 self.screen_shapes.append(sh)
 
     # @speed_test
     def draw(self):
@@ -207,7 +207,9 @@ class App:
             )
             px.text(0, 60, f"Wf={self.wireframe}", 13)
             px.text(0, 66, f"Fo={self.pov}", 14)
-            px.text(0,px.height-6,"DEBUG=KEY_9 MOUSE=KEY_\\ WIREFRAME=KEY_8",7)
+            px.text(
+                0, px.height - 6, "DEBUG=KEY_9 MOUSE=KEY_\\ WIREFRAME=KEY_8", 7
+            )
 
 
 App()
