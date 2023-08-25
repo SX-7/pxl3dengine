@@ -39,79 +39,6 @@ class App:
                 ]
             )
         )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, 10, 10, 1),
-                    Vec4(-10, 10, -10, 1),
-                    Vec4(10, 10, -10, 1),
-                    Vec4(10, 10, 10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(10, -10, 10, 1),
-                    Vec4(10, 10, 10, 1),
-                    Vec4(10, 10, -10, 1),
-                    Vec4(10, -10, -10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, -10, -10, 1),
-                    Vec4(-10, 10, -10, 1),
-                    Vec4(-10, 10, 10, 1),
-                    Vec4(-10, -10, 10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, -10, 10, 1),
-                    Vec4(10, -10, 10, 1),
-                    Vec4(10, -10, -10, 1),
-                    Vec4(-10, -10, -10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, 10, -10, 1),
-                    Vec4(-10, -10, -10, 1),
-                    Vec4(10, -10, -10, 1),
-                    Vec4(10, 10, -10, 1),
-                ]
-            )
-        )
-
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(2, 0, 0, 1),
-                    Vec4(2, 2, 0, 1),
-                    Vec4(0, 2, 0, 1),
-                    Vec4(-2, 2, 0, 1),
-                    Vec4(-2, 0, 0, 1),
-                    Vec4(-2, -2, 0, 1),
-                    Vec4(0, -2, 0, 1),
-                    Vec4(2, -2, 0, 1),
-                ]
-            )
-        )
-        # also some lines
-
-        self.shape_data.append(
-            Shape([Vec4(15, 15, 15, 1), Vec4(15, 15, -15, 1)])
-        )
-        self.shape_data.append(
-            Shape([Vec4(-15, 15, 15, 1), Vec4(-15, 15, -15, 1)])
-        )
         # axis of rotation for the cube
         self.object_rotation = Vec4(0, 1, 0, 0)
         px.run(self.update, self.draw)
@@ -197,7 +124,7 @@ class App:
         for shape in self.shape_data:
             self.screen_shapes.append(
                 self.camera.get(
-                    [shape],
+                    shape,
                     camera_pos=self.camera_position,
                     screen_heigth=px.height,
                     screen_width=px.width,
@@ -215,41 +142,40 @@ class App:
         # draw pixels
         color = 0
         # self.screen_shapes.sort(key=lambda inp: -inp[0].vertices[0].z)
-        for shape_group in self.screen_shapes:
+        for shape in self.screen_shapes:
             color += 1
             color %= 16
-            for shape in shape_group:
-                if shape.count == 1:
-                    px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
-                elif shape.count == 2:
-                    px.line(
+            if shape.count == 1:
+                px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
+            elif shape.count == 2:
+                px.line(
+                    shape.vertices[0].x,
+                    shape.vertices[0].y,
+                    shape.vertices[1].x,
+                    shape.vertices[1].y,
+                    color,
+                )
+            else:
+                if self.wireframe:
+                    px.trib(
                         shape.vertices[0].x,
                         shape.vertices[0].y,
                         shape.vertices[1].x,
                         shape.vertices[1].y,
+                        shape.vertices[2].x,
+                        shape.vertices[2].y,
                         color,
                     )
                 else:
-                    if self.wireframe:
-                        px.trib(
-                            shape.vertices[0].x,
-                            shape.vertices[0].y,
-                            shape.vertices[1].x,
-                            shape.vertices[1].y,
-                            shape.vertices[2].x,
-                            shape.vertices[2].y,
-                            color,
-                        )
-                    else:
-                        px.tri(
-                            shape.vertices[0].x,
-                            shape.vertices[0].y,
-                            shape.vertices[1].x,
-                            shape.vertices[1].y,
-                            shape.vertices[2].x,
-                            shape.vertices[2].y,
-                            color,
-                        )
+                    px.tri(
+                        shape.vertices[0].x,
+                        shape.vertices[0].y,
+                        shape.vertices[1].x,
+                        shape.vertices[1].y,
+                        shape.vertices[2].x,
+                        shape.vertices[2].y,
+                        color,
+                    )
         # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)
