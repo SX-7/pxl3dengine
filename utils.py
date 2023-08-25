@@ -544,6 +544,11 @@ class Camera:
     def __init__(self):
         pass
 
+    def _clip_poly_to_fustrum(
+        self, poly, nlb, nlt, nrt, nrb, flb, flt, frt, frb
+    ):
+        raise NotImplementedError
+
     def get(
         self,
         shape: Shape,
@@ -559,8 +564,6 @@ class Camera:
         near: float = 0.1,
         far: float = 100,
     ):
-        import copy
-
         if shape.count != 3:
             raise Exception
         world_matrix = Mat4.scaling_matrix(scaling)
@@ -587,13 +590,29 @@ class Camera:
         perspective_matrix = Mat4.perspective_matrix(
             math.radians(pov), screen_width / screen_heigth, near, far
         )
-        result = []
+        clip_space = []
         for point in shape.vertices:
             point = world_matrix * point
             point = view_matrix * point
-            print(point)
             point = perspective_matrix * point
-            print(point)
+            clip_space.append(point)
+
+        # another reason to have these in __init__ or some other function
+        nlb = Vec4(-near, -near, near, near)
+        nlt = Vec4(-near, near, near, near)
+        nrb = Vec4(near, -near, near, near)
+        nrt = Vec4(near, near, near, near)
+        flb = Vec4(-far, -far, far, far)
+        flt = Vec4(-far, far, far, far)
+        frb = Vec4(far, -far, far, far)
+        frt = Vec4(far, far, far, far)
+
+        clip_space = self._clip_poly_to_fustrum(
+            clip_space, nlb, nlt, nrt, nrb, flb, flt, frt, frb
+        )
+
+        result = []
+        for point in clip_space:
             if (
                 -point.w < point.x < point.w
                 and -point.w < point.y < point.w
