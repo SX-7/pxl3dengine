@@ -39,6 +39,9 @@ class Shape:
     def __init__(self, vertices: list[Vec4]) -> None:
         self.vertices: list[Vec4] = vertices
         self.count = len(vertices)
+        
+    def __eq__(self, __value: object) -> bool:
+        return self.vertices==__value.vertices
 
     def insert_vertice(self, vertice: Vec4, index: int) -> None:
         self.vertices.insert(index, vertice)
@@ -895,7 +898,7 @@ class Camera:
                     ]
 
                     for vv in viewport_vertices:
-                        vv = Vec4(vv.x, vv.y, vv.z, 1)
+                        vv = Vec4(vv.x, vv.y, vv.z, 1) 
                     new_shape = Shape(Vec4.shape_intersection(
                         viewport_vertices, shape.vertices
                     ))
