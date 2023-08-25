@@ -896,11 +896,9 @@ class Camera:
 
                     for vv in viewport_vertices:
                         vv = Vec4(vv.x, vv.y, vv.z, 1)
-                    for vv in viewport_vertices:
-                        print(vv)
-                    new_shape = Vec4.compute_shape_intersection(
+                    new_shape = Shape(Vec4.shape_intersection(
                         viewport_vertices, shape.vertices
-                    )
+                    ))
 
                     try:
                         # consider putting triangle splitter from up there right below us, if we can handle polygons
