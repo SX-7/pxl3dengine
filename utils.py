@@ -27,7 +27,7 @@ def _verify_type(compared_object: object, *types: type) -> int:
                 return i
 
 
-class Vec4:
+class Vec3:
     pass
 
 
@@ -36,18 +36,18 @@ class Shape:
 
 
 class Shape:
-    def __init__(self, vertices: list[Vec4]) -> None:
-        self.vertices: list[Vec4] = vertices
+    def __init__(self, vertices: list[Vec3]) -> None:
+        self.vertices: list[Vec3] = vertices
         self.count = len(vertices)
-        
-    def __eq__(self, __value: object) -> bool:
-        return self.vertices==__value.vertices
 
-    def insert_vertice(self, vertice: Vec4, index: int) -> None:
+    def __eq__(self, __value: object) -> bool:
+        return self.vertices == __value.vertices
+
+    def insert_vertice(self, vertice: Vec3, index: int) -> None:
         self.vertices.insert(index, vertice)
         self.count = len(self.vertices)
 
-    def add_vertice(self, vertice: Vec4) -> None:
+    def add_vertice(self, vertice: Vec3) -> None:
         self.vertices.append(vertice)
         self.count = len(self.vertices)
 
@@ -157,6 +157,46 @@ class Vec2:
             )
         )
 
+    @staticmethod
+    def shape_intersection(subject_poly: list, clip_poly: list):
+        import copy
+
+        output_list = copy.copy(subject_poly)
+        # Greiner-Hormann algo, for the pointers we're using .w
+        # step one from wikipedia
+        for clip_index in range(len(clip_poly)):
+            clip_begin = clip_poly[clip_index]
+            clip_end = clip_poly[(clip_index + 1) % len(clip_poly)]
+            input_list = copy.copy(output_list)
+            output_list = []
+            for subject_index in range(len(input_list)):
+                curr_point = input_list[subject_index]
+                prev_point = input_list[(subject_index - 1) % len(input_list)]
+                inter_point = Vec2.intersection_point(
+                    clip_begin, clip_end, curr_point, prev_point
+                )  # make one for infinite length
+
+                if Vec2.ccw(
+                    clip_begin,
+                    clip_end,
+                    clip_poly[(clip_index + 2) % len(clip_poly)],
+                ) == Vec2.ccw(clip_begin, clip_end, curr_point):
+                    if Vec2.ccw(
+                        clip_begin,
+                        clip_end,
+                        clip_poly[(clip_index + 2) % len(clip_poly)],
+                    ) != Vec2.ccw(clip_begin, clip_end, prev_point):
+                        output_list.append(inter_point)
+                    output_list.append(curr_point)
+                elif Vec2.ccw(
+                    clip_begin,
+                    clip_end,
+                    clip_poly[(clip_index + 2) % len(clip_poly)],
+                ) == Vec2.ccw(clip_begin, clip_end, prev_point):
+                    output_list.append(inter_point)
+
+        return output_list
+
 
 class Mat3:
     pass
@@ -243,14 +283,36 @@ class Vec3:
             ]
         )
 
-    def place_on_plane(t_point: Vec2, A, B, C):
+    def place_on_plane(t_point: Vec2, A, B, C, missing_coord="Z"):
         normal = (A - B).cross(C - B)
-
-        new_z = (
-            (normal.x * (t_point.x - A.x) + normal.y * (t_point.y - A.y))
-            / (-normal.z)
-        ) + A.z
-        return Vec3(t_point.x, t_point.y, new_z)
+        match missing_coord:
+            case "X":
+                new_x = (
+                    (
+                        normal.y * (t_point.x - A.y)
+                        + normal.z * (t_point.y - A.z)
+                    )
+                    / (-normal.x)
+                ) + A.x
+                return Vec3(new_x, t_point.x, t_point.y)
+            case "Y":
+                new_y = (
+                    (
+                        normal.z * (t_point.y - A.z)
+                        + normal.x * (t_point.x - A.x)
+                    )
+                    / (-normal.y)
+                ) + A.y
+                return Vec3(t_point.x, new_y, t_point.y)
+            case "Z":
+                new_z = (
+                    (
+                        normal.x * (t_point.x - A.x)
+                        + normal.y * (t_point.y - A.y)
+                    )
+                    / (-normal.z)
+                ) + A.z
+                return Vec3(t_point.x, t_point.y, new_z)
 
 
 class Mat3:
@@ -391,46 +453,6 @@ class Vec4:
             return self
         return result
 
-    @staticmethod
-    def shape_intersection(subject_poly: list[Vec4], clip_poly: list[Vec4]):
-        import copy
-
-        output_list = copy.copy(subject_poly)
-        # Greiner-Hormann algo, for the pointers we're using .w
-        # step one from wikipedia
-        for clip_index in range(len(clip_poly)):
-            clip_begin = clip_poly[clip_index]
-            clip_end = clip_poly[(clip_index + 1) % len(clip_poly)]
-            input_list = copy.copy(output_list)
-            output_list = []
-            for subject_index in range(len(input_list)):
-                curr_point = input_list[subject_index]
-                prev_point = input_list[(subject_index - 1) % len(input_list)]
-                inter_point = Vec2.intersection_point(
-                    clip_begin, clip_end, curr_point, prev_point
-                )  # make one for infinite length
-
-                if Vec2.ccw(
-                    clip_begin,
-                    clip_end,
-                    clip_poly[(clip_index + 2) % len(clip_poly)],
-                ) == Vec2.ccw(clip_begin, clip_end, curr_point):
-                    if Vec2.ccw(
-                        clip_begin,
-                        clip_end,
-                        clip_poly[(clip_index + 2) % len(clip_poly)],
-                    ) != Vec2.ccw(clip_begin, clip_end, prev_point):
-                        output_list.append(inter_point)
-                    output_list.append(curr_point)
-                elif Vec2.ccw(
-                        clip_begin,
-                        clip_end,
-                        clip_poly[(clip_index + 2) % len(clip_poly)],
-                    ) == Vec2.ccw(clip_begin, clip_end, prev_point):
-                    output_list.append(inter_point)
-
-        return output_list
-
 
 class Mat4:
     def __init__(
@@ -544,9 +566,94 @@ class Camera:
     def __init__(self):
         pass
 
+    def _clip_poly_to_nf_fustrum(self, poly, near, far):
+        # fustrum is sadly in the shape of a cut pyramid
+        # XY clipping is worthless, as Z impacts the cut plane
+        # volume clipping is way too much work for this
+        # instead, we're clipping twice, once XZ, and once YZ
+        # (indeed one is redundant, but makes it easier for me)
+        # to ensure absolutely no cuts, except for the Z, we're using max
+        biggest_coord = 0
+        for vec in poly:
+            local_max = max(abs(vec.x), abs(vec.y), abs(vec.z), abs(vec.w))
+            if local_max > biggest_coord:
+                biggest_coord = local_max
+        fustrum_xy_z = [
+            Vec3(biggest_coord*2, near, 1),
+            Vec3(biggest_coord*2, far, 1),
+            Vec3(-biggest_coord*2, far, 1),
+            Vec3(-biggest_coord*2, near, 1),
+        ]
+        # There's an edge case: if we have the shape perfectly aligned to one of the planes,
+        # We might have issues
+        # If it's the Z plane, we can just skip it
+        # If it's X or Y planes, we need to select the other in advance
+        if len(poly)!=3:
+            raise IndexError
+        Y = False
+        normal = (poly[0] - poly[1]).cross(poly[2] - poly[1])
+        if normal.y ==0:
+            Y=True
+        poly_xz = []
+        if Y:
+            for vec in poly:
+                poly_xz.append(Vec4(vec.y, vec.z, vec.x, vec.w))
+        else:
+            for vec in poly:
+                poly_xz.append(Vec4(vec.x, vec.z, vec.y, vec.w))
+        # we're abusing 2 things here - preservation of order, and preservation of type
+        # this funciton doesn't care what it'll get, as long as it's Vec with .x and .y
+        # thus we can use types for signalization. Hacky asf, but works :)
+        # should write some tests to ensure this functionality is preserved in the future
+        clipped_xz = Vec2.shape_intersection(poly_xz, fustrum_xy_z)
+        result = []
+        try:
+            for point in clipped_xz:
+                if isinstance(point, Vec4):
+                    if Y:
+                        result.append(Vec4(point.z, point.x, point.y, point.w))
+                    else:
+                        result.append(Vec4(point.x, point.z, point.y, point.w))
+                elif isinstance(point, Vec2):
+                    if Y:
+                        result.append(
+                            Vec4(
+                                Vec3.place_on_plane(
+                                    point,
+                                    poly[0],
+                                    poly[1],
+                                    poly[2],
+                                    missing_coord="X",
+                                ).x,
+                                point.x,
+                                point.y,
+                                (point.y + 2 * near) * (far - 2 * near) / far,
+                            )
+                        )
+                    else:
+                        result.append(
+                            Vec4(
+                                point.x,
+                                Vec3.place_on_plane(
+                                    point,
+                                    poly[0],
+                                    poly[1],
+                                    poly[2],
+                                    missing_coord="Y",
+                                ).y,
+                                point.y,
+                                (point.y + 2 * near) * (far - 2 * near) / far,
+                            )
+                        )
+        except Exception as e:
+            # if all on Z plane
+            print("Z EXCEPT",e.with_traceback())
+            return []
+        return result
+
     def get(
         self,
-        shapes: list[Shape],
+        shape: Shape,
         screen_width: int,
         screen_heigth: int,
         world_coordinates: Vec3 = Vec3(0, 0, 0),
@@ -559,21 +666,19 @@ class Camera:
         near: float = 0.1,
         far: float = 100,
     ):
-        # create object specific transforms
+        if shape.count != 3:
+            raise Exception
+        shape_4 = []
+        for point in shape.vertices:
+            shape_4.append(Vec4(point.x,point.y,point.z,1))
         world_matrix = Mat4.scaling_matrix(scaling)
         world_matrix = rotation.rotation_matrix() * world_matrix
         world_matrix = (
             Mat4.translation_matrix(world_coordinates) * world_matrix
         )
-        # camera specific transforms
         camera_direction = camera_front.normalize()
         right = world_up.cross(camera_direction).normalize()
         camera_up = camera_direction.cross(right)
-        # for some reason we're using a wrong system?
-        # ideally, we'd like cartesian+screen x and y axes
-        # to be 1:1 with pyxel cords. As such, a hack is needed.
-        # Maybe an error in other part of the program, but this works
-        # just as good
         view_matrix = Mat4(
             [
                 [right.x, right.y, right.z, 0],
@@ -587,337 +692,39 @@ class Camera:
                 [0, 0, 0, 1],
             ]
         ) * Mat4.translation_matrix(-camera_pos)
-        # perspective transform
         perspective_matrix = Mat4.perspective_matrix(
             math.radians(pov), screen_width / screen_heigth, near, far
         )
-        # we *DO NOT* want things bigger than triangles. Decompose, and then process
-        good_shapes = []
-        for shape in shapes:
-            if shape.count > 3:
-                good_shapes.extend(shape.decompose_to_triangles())
-            else:
-                good_shapes.append(shape)
+        clip_space = []
+        for point in shape_4:
+            point = world_matrix * point
+            point = view_matrix * point
+            point = perspective_matrix * point
+            clip_space.append(point)
+            
+        clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
+        # now we have clipped front-back. time to clip lrtb
+        result=[]
+        
+        for point in clip_space:
+            point.x = point.x / point.w
+            point.y = point.y / point.w
+            point.z = point.z / point.w
+            point.w = 1
+            point.y = -point.y
+            point += Vec4(1, 1, 0, 0)
+            point.x *= screen_width / 2
+            point.y *= screen_heigth / 2
+            result.append(point)
+        mixed = Vec2.shape_intersection(result,[Vec2(0,0),Vec2(screen_width,0),Vec2(screen_width,screen_heigth),Vec2(0,screen_heigth)])
         result = []
-        for shape in good_shapes:
-            behind = 0
-            points = shape.vertices
-            curr_shape_points = []
-            view_points = []
-            for point in points:
-                # rn we're local space, objects have small values and all, basic
-                # and unrotated, it's entirely possible to pre-do this step, but
-                # that depends on the object. rn not skipping for completion sake
-                point = world_matrix * point
-                # world space, so the objects got into their position in the game
-                point = view_matrix * point
-                # camera/view space, we've moved the objects in front of our camera
-                view_points.append(point)
-            # now, we check for points behind the camera, and deal with offending vertices
-            if len(view_points) == 1:
-                if view_points[0].z > 0:
-                    continue
-            elif len(view_points) == 2:
-                if (view_points[0].z) > 0 or (view_points[1].z > 0):
-                    if (view_points[0].z > 0) and (view_points[1].z > 0):
-                        continue
-                    else:
-                        if view_points[0].z > 0:
-                            good = view_points[1]
-                            bad = view_points[0]
-                        else:
-                            good = view_points[0]
-                            bad = view_points[1]
-                        diff = bad - good
-                        # magic number, but actually necessary due to
-                        # imperfections of floating point systems (:
-                        # What was happening, is we'd get
-                        diff = -((diff / diff.z) * good.z) * 0.99
-                        bad = good + diff
-                        view_points[0] = good
-                        view_points[1] = bad
-            elif len(view_points) == 3:
-                which = []
-                for i in range(len(view_points)):
-                    if view_points[i].z > 0:
-                        which.append(i)
-                if len(which) == 3:
-                    continue
-                elif len(which) == 2:
-                    which_not = 3 - sum(which)
-                    good = view_points[which_not]
-                    bad_one = view_points[which[0]]
-                    bad_two = view_points[which[1]]
-                    diff_one = bad_one - good
-                    diff_two = bad_two - good
-                    # magic number, but actually necessary due to
-                    # imperfections of floating point systems (:
-                    # What was happening, is we'd get
-                    diff_one = -((diff_one / diff_one.z) * good.z) * 0.99
-                    diff_two = -((diff_two / diff_two.z) * good.z) * 0.99
-                    bad_one = good + diff_one
-                    bad_two = good + diff_two
-                    view_points[0] = good
-                    view_points[1] = bad_one
-                    view_points[2] = bad_two
-                elif len(which) == 1:
-                    match which[0]:
-                        case 0:
-                            good_one = view_points[1]
-                            good_two = view_points[2]
-                        case 1:
-                            good_one = view_points[0]
-                            good_two = view_points[2]
-                        case 2:
-                            good_one = view_points[0]
-                            good_two = view_points[1]
-                    bad_orig = view_points[which[0]]
-                    diff_one = bad_orig - good_one
-                    diff_two = bad_orig - good_two
-                    # magic number, but actually necessary due to
-                    # imperfections of floating point systems (:
-                    # What was happening, is we'd get
-                    diff_one = -((diff_one / diff_one.z) * good_one.z) * 0.99
-                    diff_two = -((diff_two / diff_two.z) * good_two.z) * 0.99
-                    bad_one = good_one + diff_one
-                    bad_two = good_two + diff_two
-                    view_points[0] = good_one
-                    view_points[1] = bad_one
-                    view_points[2] = bad_two
-                    view_points.append(good_two)
-                    # this case is problematic, since we have a triangle that's
-                    # gonna get clipped in such a way, it'll have two good and
-                    # two fake vertices. since we want only triangles, we will
-                    # pack them into Shape and call the splitter
-                    # ALSO don't forget about vertice order
-            else:
-                raise IndexError("Wtf??")
-            for point in view_points:
-                point = perspective_matrix * point
-                # if (
-                #    (-point.w < point.x < point.w)
-                #    and (-point.w < point.y < point.w)
-                #    and (-point.w < point.z < point.w)
-                # ):
-                try:
-                    point = Vec4(
-                        point.x / point.w,
-                        point.y / point.w,
-                        point.z / point.w,
-                        1,
-                    )
-                    if point.z < 0 or point.z > 1:
-                        behind += 1
-                    # clip space, objects have been translated to -1 to 1 coordinates
-                    # and clipped and perspective
-                except:
-                    # do something here later? currently less of a priority
-                    continue
-                point.y = -point.y
-                point += Vec4(1, 1, 0, 0)
-                point.x *= screen_width / 2
-                point.y *= screen_heigth / 2
-                # viewport transform, so basically we move to the 128x128 space, or
-                # whatever the wievport is - this is pending to be incorporated
-                # into the perspective matrix possibly? Depends on the calculation
-                # savings
-                curr_shape_points.append(point)
-            if behind == len(
-                curr_shape_points
-            ):  # remember to add to close handling somewhere here later
-                continue
-            else:
-                if len(curr_shape_points) > 3:
-                    result.extend(
-                        Shape(curr_shape_points).decompose_to_triangles()
-                    )
-                else:
-                    result.append(Shape(curr_shape_points))
-        # we only want to display shapes that are CCW towards us
-        unclockwised_faces = result
-        result = []
-        for face in unclockwised_faces:
-            # skip non lines
-            if face.count < 3:
-                result.append(face)
-            elif face.count > 3:
-                raise IndexError(
-                    "This is right after decompose, this shouldn't break"
-                )
-            else:
-                if Vec2.ccw(
-                    Vec2(face.vertices[0].x, face.vertices[0].y),
-                    Vec2(face.vertices[1].x, face.vertices[1].y),
-                    Vec2(face.vertices[2].x, face.vertices[2].y),
-                ):
-                    result.append(face)
-        # what we have, is shapes with possibly some insane values. Clip time
-        unclipped_shapes = result
-        result = []
-        # heavy clipping which is necessary cuz otherwise pyxel dies, trying to draw stuff at 1e+18
-        for shape in unclipped_shapes:
-            # remove points, if for some reason they're still here
-            if shape.count == 1:
-                if (
-                    0 < shape.vertices[0].x < screen_width
-                    and 0 < shape.vertices[0].y < screen_heigth
-                ):
-                    result.append(shape)
-                continue
-            # shorten lines
-            elif shape.count == 2:
-                if (
-                    0 < shape.vertices[0].x < screen_width
-                    and 0 < shape.vertices[0].y < screen_heigth
-                    and 0 < shape.vertices[1].x < screen_width
-                    and 0 < shape.vertices[1].y < screen_heigth
-                ):
-                    result.append(shape)
-                else:
-                    append = False
-                    if Vec2.intersect(
-                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
-                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
-                        Vec2(0, 0),
-                        Vec2(screen_width, 0),
-                    ):
-                        if shape.vertices[0].y <= 0:
-                            diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = shape.vertices[1].y / diff.y
-                            diff = diff * ratio
-                            shape.vertices[0] = shape.vertices[1] - diff
-                        else:
-                            diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = shape.vertices[0].y / diff.y
-                            diff = diff * ratio
-                            shape.vertices[1] = shape.vertices[0] - diff
-                        append = True
-                    if Vec2.intersect(
-                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
-                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
-                        Vec2(0, screen_heigth),
-                        Vec2(screen_width, screen_heigth),
-                    ):
-                        if shape.vertices[0].y >= screen_heigth:
-                            diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = (
-                                screen_heigth - shape.vertices[1].y
-                            ) / diff.y
-                            diff = diff * ratio
-                            shape.vertices[0] = shape.vertices[1] + diff
-                        else:
-                            diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = (
-                                screen_heigth - shape.vertices[0].y
-                            ) / diff.y
-                            diff = diff * ratio
-                            shape.vertices[1] = shape.vertices[0] + diff
-                        append = True
-                    if Vec2.intersect(
-                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
-                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
-                        Vec2(0, 0),
-                        Vec2(0, screen_heigth),
-                    ):
-                        if shape.vertices[0].x <= 0:
-                            diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = shape.vertices[1].x / diff.x
-                            diff = diff * ratio
-                            shape.vertices[0] = shape.vertices[1] - diff
-                        else:
-                            diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = shape.vertices[0].x / diff.x
-                            diff = diff * ratio
-                            shape.vertices[1] = shape.vertices[0] - diff
-                        append = True
-                    if Vec2.intersect(
-                        Vec2(shape.vertices[0].x, shape.vertices[0].y),
-                        Vec2(shape.vertices[1].x, shape.vertices[1].y),
-                        Vec2(screen_width, 0),
-                        Vec2(screen_width, screen_heigth),
-                    ):
-                        if shape.vertices[0].x >= screen_width:
-                            diff = shape.vertices[0] - shape.vertices[1]
-                            ratio = (
-                                screen_width - shape.vertices[1].x
-                            ) / diff.x
-                            diff = diff * ratio
-                            shape.vertices[0] = shape.vertices[1] + diff
-                        else:
-                            diff = shape.vertices[1] - shape.vertices[0]
-                            ratio = (
-                                screen_width - shape.vertices[0].x
-                            ) / diff.x
-                            diff = diff * ratio
-                            shape.vertices[1] = shape.vertices[0] + diff
-                        append = True
-                    if append:
-                        result.append(shape)
-            # clip triangles
-            elif shape.count == 3:
-                # my recommendation: look at clipping algos on wikipedia.
-                # Also check out computational geometry, and painter's algorithm
-                if (
-                    0 < shape.vertices[0].x < screen_width
-                    and 0 < shape.vertices[0].y < screen_heigth
-                    and 0 < shape.vertices[1].x < screen_width
-                    and 0 < shape.vertices[1].y < screen_heigth
-                    and 0 < shape.vertices[2].x < screen_width
-                    and 0 < shape.vertices[2].y < screen_heigth
-                ):
-                    result.append(shape)
-                else:
-                    new_shape = Shape([])
-                    # find a plane of the triangle and place square vertices on it
-
-                    viewport_vertices = [
-                        Vec3.place_on_plane(
-                            Vec2(0, 0),
-                            shape.vertices[0],
-                            shape.vertices[1],
-                            shape.vertices[2],
-                        ),
-                        Vec3.place_on_plane(
-                            Vec2(0, screen_heigth),
-                            shape.vertices[0],
-                            shape.vertices[1],
-                            shape.vertices[2],
-                        ),
-                        Vec3.place_on_plane(
-                            Vec2(screen_width, screen_heigth),
-                            shape.vertices[0],
-                            shape.vertices[1],
-                            shape.vertices[2],
-                        ),
-                        Vec3.place_on_plane(
-                            Vec2(screen_width, 0),
-                            shape.vertices[0],
-                            shape.vertices[1],
-                            shape.vertices[2],
-                        ),
-                    ]
-
-                    for vv in viewport_vertices:
-                        vv = Vec4(vv.x, vv.y, vv.z, 1) 
-                    new_shape = Shape(Vec4.shape_intersection(
-                        viewport_vertices, shape.vertices
-                    ))
-
-                    try:
-                        # consider putting triangle splitter from up there right below us, if we can handle polygons
-                        triangles = new_shape.decompose_to_triangles()
-                        # 6. Add the resulting list to results
-                        result.extend(triangles)
-                    except IndexError:
-                        # that means that there was only 1 point remaining,
-                        # so, it was on the border, or outside it, so goodbye
-                        pass
-            else:
-                print(
-                    "How did you get a 4+= sided shape in here. Test&report pls"
-                )
-                result.append(shape)
-        return result
+        for point in mixed:
+            if isinstance(point,Vec4):
+                result.append(Vec3(point.x,point.y,point.z))
+            elif isinstance(point,Vec2):
+                result.append(Vec3.place_on_plane(point,shape_4[0],shape_4[1],shape_4[2]))
+        if len(result) > 0:
+            return Shape(result).decompose_to_triangles()
 
 
 def speed_test(func):
