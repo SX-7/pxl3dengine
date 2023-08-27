@@ -27,7 +27,6 @@ class App:
                     Vec3(-10, 10, 10),
                     Vec3(10, 10, 10),
                     Vec3(10, -10, 10),
-                    
                     Vec3(-10, -10, 10),
                 ]
             )
@@ -41,26 +40,30 @@ class App:
         # rudimentary camera control
         self.movement_speed = 1
         if px.btn(px.KEY_A):
-            self.camera_position += self.camera_front.cross(self.world_up)* self.movement_speed
+            self.camera_position += (
+                self.camera_front.cross(self.world_up) * self.movement_speed
+            )
         if px.btn(px.KEY_D):
-            self.camera_position += -self.camera_front.cross(self.world_up)* self.movement_speed
+            self.camera_position += (
+                -self.camera_front.cross(self.world_up) * self.movement_speed
+            )
         if px.btn(px.KEY_W):
             self.camera_position += -self.camera_front * self.movement_speed
         if px.btn(px.KEY_S):
             self.camera_position += self.camera_front * self.movement_speed
         if px.btn(px.KEY_SPACE):
-            self.camera_position += Vec3(0, 1, 0)* self.movement_speed
+            self.camera_position += Vec3(0, 1, 0) * self.movement_speed
         if px.btn(px.KEY_LSHIFT):
-            self.camera_position += Vec3(0, -1, 0)* self.movement_speed
+            self.camera_position += Vec3(0, -1, 0) * self.movement_speed
         if (px.mouse_wheel > 0) and (self.pov > 5):
             self.pov -= 5
         elif px.mouse_wheel < 0 and self.pov < 175:
             self.pov += 5
         elif px.btn(px.MOUSE_BUTTON_MIDDLE):
             self.pov = 100
-        self.camera_position.x = round(self.camera_position.x,3)
-        self.camera_position.y = round(self.camera_position.y,3)
-        self.camera_position.z = round(self.camera_position.z,3)
+        self.camera_position.x = round(self.camera_position.x, 3)
+        self.camera_position.y = round(self.camera_position.y, 3)
+        self.camera_position.z = round(self.camera_position.z, 3)
         # update object rotation to make it spin
         # self.object_rotation.w += 0.1
         # mouse movement processing code
@@ -129,7 +132,7 @@ class App:
                 pov=self.pov,
             )
             if sh:
-                 self.screen_shapes.extend(sh)
+                self.screen_shapes.extend(sh)
 
     # @speed_test
     def draw(self):

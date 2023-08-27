@@ -579,21 +579,21 @@ class Camera:
             if local_max > biggest_coord:
                 biggest_coord = local_max
         fustrum_xy_z = [
-            Vec3(biggest_coord*2, near, 1),
-            Vec3(biggest_coord*2, far, 1),
-            Vec3(-biggest_coord*2, far, 1),
-            Vec3(-biggest_coord*2, near, 1),
+            Vec3(biggest_coord * 2, near, 1),
+            Vec3(biggest_coord * 2, far, 1),
+            Vec3(-biggest_coord * 2, far, 1),
+            Vec3(-biggest_coord * 2, near, 1),
         ]
         # There's an edge case: if we have the shape perfectly aligned to one of the planes,
         # We might have issues
         # If it's the Z plane, we can just skip it
         # If it's X or Y planes, we need to select the other in advance
-        if len(poly)<3:
+        if len(poly) < 3:
             raise IndexError
         Y = False
         normal = (poly[0] - poly[1]).cross(poly[2] - poly[1])
-        if normal.y ==0:
-            Y=True
+        if normal.y == 0:
+            Y = True
         poly_xz = []
         if Y:
             for vec in poly:
@@ -647,7 +647,6 @@ class Camera:
                         )
         except Exception as e:
             # if all on Z plane
-            print("Z EXCEPT",e.with_traceback())
             return []
         return result
 
@@ -670,7 +669,7 @@ class Camera:
             raise Exception
         shape_4 = []
         for point in shape.vertices:
-            shape_4.append(Vec4(point.x,point.y,point.z,1))
+            shape_4.append(Vec4(point.x, point.y, point.z, 1))
         world_matrix = Mat4.scaling_matrix(scaling)
         world_matrix = rotation.rotation_matrix() * world_matrix
         world_matrix = (
@@ -701,11 +700,11 @@ class Camera:
             point = view_matrix * point
             point = perspective_matrix * point
             clip_space.append(point)
-            
+
         clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
         # now we have clipped front-back. time to clip lrtb
-        result=[]
-        
+        result = []
+
         for point in clip_space:
             point.x = point.x / point.w
             point.y = point.y / point.w
@@ -716,13 +715,25 @@ class Camera:
             point.x *= screen_width / 2
             point.y *= screen_heigth / 2
             result.append(point)
-        mixed = Vec2.shape_intersection(result,[Vec2(0,0),Vec2(screen_width,0),Vec2(screen_width,screen_heigth),Vec2(0,screen_heigth)])
+        mixed = Vec2.shape_intersection(
+            result,
+            [
+                Vec2(0, 0),
+                Vec2(screen_width, 0),
+                Vec2(screen_width, screen_heigth),
+                Vec2(0, screen_heigth),
+            ],
+        )
         result = []
         for point in mixed:
-            if isinstance(point,Vec4):
-                result.append(Vec3(point.x,point.y,point.z))
-            elif isinstance(point,Vec2):
-                result.append(Vec3.place_on_plane(point,shape_4[0],shape_4[1],shape_4[2]))
+            if isinstance(point, Vec4):
+                result.append(Vec3(point.x, point.y, point.z))
+            elif isinstance(point, Vec2):
+                result.append(
+                    Vec3.place_on_plane(
+                        point, shape_4[0], shape_4[1], shape_4[2]
+                    )
+                )
         if len(result) > 0:
             return Shape(result).decompose_to_triangles()
 
