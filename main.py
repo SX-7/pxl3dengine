@@ -25,17 +25,10 @@ class App:
             Shape(
                 [
                     Vec3(-10, 10, 10),
-                    Vec3(10, -10, 10),
-                    Vec3(-10, -10, 10),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec3(-10, 10, 10),
                     Vec3(10, 10, 10),
                     Vec3(10, -10, 10),
+                    
+                    Vec3(-10, -10, 10),
                 ]
             )
         )

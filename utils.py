@@ -588,7 +588,7 @@ class Camera:
         # We might have issues
         # If it's the Z plane, we can just skip it
         # If it's X or Y planes, we need to select the other in advance
-        if len(poly)!=3:
+        if len(poly)<3:
             raise IndexError
         Y = False
         normal = (poly[0] - poly[1]).cross(poly[2] - poly[1])
@@ -666,7 +666,7 @@ class Camera:
         near: float = 0.1,
         far: float = 100,
     ):
-        if shape.count != 3:
+        if shape.count < 3:
             raise Exception
         shape_4 = []
         for point in shape.vertices:
