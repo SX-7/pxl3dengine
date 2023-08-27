@@ -24,93 +24,12 @@ class App:
         self.shape_data.append(
             Shape(
                 [
-                    Vec4(-10, 10, 10, 1),
-                    Vec4(10, -10, 10, 1),
-                    Vec4(-10, -10, 10, 1),
+                    Vec3(-10, 10, 10),
+                    Vec3(10, 10, 10),
+                    Vec3(10, -10, 10),
+                    Vec3(-10, -10, 10),
                 ]
             )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, 10, 10, 1),
-                    Vec4(10, 10, 10, 1),
-                    Vec4(10, -10, 10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, 10, 10, 1),
-                    Vec4(-10, 10, -10, 1),
-                    Vec4(10, 10, -10, 1),
-                    Vec4(10, 10, 10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(10, -10, 10, 1),
-                    Vec4(10, 10, 10, 1),
-                    Vec4(10, 10, -10, 1),
-                    Vec4(10, -10, -10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, -10, -10, 1),
-                    Vec4(-10, 10, -10, 1),
-                    Vec4(-10, 10, 10, 1),
-                    Vec4(-10, -10, 10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, -10, 10, 1),
-                    Vec4(10, -10, 10, 1),
-                    Vec4(10, -10, -10, 1),
-                    Vec4(-10, -10, -10, 1),
-                ]
-            )
-        )
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(-10, 10, -10, 1),
-                    Vec4(-10, -10, -10, 1),
-                    Vec4(10, -10, -10, 1),
-                    Vec4(10, 10, -10, 1),
-                ]
-            )
-        )
-
-        self.shape_data.append(
-            Shape(
-                [
-                    Vec4(2, 0, 0, 1),
-                    Vec4(2, 2, 0, 1),
-                    Vec4(0, 2, 0, 1),
-                    Vec4(-2, 2, 0, 1),
-                    Vec4(-2, 0, 0, 1),
-                    Vec4(-2, -2, 0, 1),
-                    Vec4(0, -2, 0, 1),
-                    Vec4(2, -2, 0, 1),
-                ]
-            )
-        )
-        # also some lines
-
-        self.shape_data.append(
-            Shape([Vec4(15, 15, 15, 1), Vec4(15, 15, -15, 1)])
-        )
-        self.shape_data.append(
-            Shape([Vec4(-15, 15, 15, 1), Vec4(-15, 15, -15, 1)])
         )
         # axis of rotation for the cube
         self.object_rotation = Vec4(0, 1, 0, 0)
@@ -121,23 +40,30 @@ class App:
         # rudimentary camera control
         self.movement_speed = 1
         if px.btn(px.KEY_A):
-            self.camera_position += self.camera_front.cross(self.world_up)
+            self.camera_position += (
+                self.camera_front.cross(self.world_up) * self.movement_speed
+            )
         if px.btn(px.KEY_D):
-            self.camera_position += -self.camera_front.cross(self.world_up)
+            self.camera_position += (
+                -self.camera_front.cross(self.world_up) * self.movement_speed
+            )
         if px.btn(px.KEY_W):
             self.camera_position += -self.camera_front * self.movement_speed
         if px.btn(px.KEY_S):
             self.camera_position += self.camera_front * self.movement_speed
         if px.btn(px.KEY_SPACE):
-            self.camera_position += Vec3(0, 1, 0)
+            self.camera_position += Vec3(0, 1, 0) * self.movement_speed
         if px.btn(px.KEY_LSHIFT):
-            self.camera_position += Vec3(0, -1, 0)
+            self.camera_position += Vec3(0, -1, 0) * self.movement_speed
         if (px.mouse_wheel > 0) and (self.pov > 5):
             self.pov -= 5
         elif px.mouse_wheel < 0 and self.pov < 175:
             self.pov += 5
         elif px.btn(px.MOUSE_BUTTON_MIDDLE):
             self.pov = 100
+        self.camera_position.x = round(self.camera_position.x, 3)
+        self.camera_position.y = round(self.camera_position.y, 3)
+        self.camera_position.z = round(self.camera_position.z, 3)
         # update object rotation to make it spin
         # self.object_rotation.w += 0.1
         # mouse movement processing code
@@ -195,18 +121,18 @@ class App:
         # process pixel's positions
         self.screen_shapes = []
         for shape in self.shape_data:
-            self.screen_shapes.append(
-                self.camera.get(
-                    [shape],
-                    camera_pos=self.camera_position,
-                    screen_heigth=px.height,
-                    screen_width=px.width,
-                    rotation=self.object_rotation,
-                    camera_front=self.camera_front,
-                    world_up=self.world_up,
-                    pov=self.pov,
-                )
+            sh = self.camera.get(
+                shape,
+                camera_pos=self.camera_position,
+                screen_heigth=px.height,
+                screen_width=px.width,
+                rotation=self.object_rotation,
+                camera_front=self.camera_front,
+                world_up=self.world_up,
+                pov=self.pov,
             )
+            if sh:
+                self.screen_shapes.extend(sh)
 
     # @speed_test
     def draw(self):
@@ -215,41 +141,40 @@ class App:
         # draw pixels
         color = 0
         # self.screen_shapes.sort(key=lambda inp: -inp[0].vertices[0].z)
-        for shape_group in self.screen_shapes:
+        for shape in self.screen_shapes:
             color += 1
             color %= 16
-            for shape in shape_group:
-                if shape.count == 1:
-                    px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
-                elif shape.count == 2:
-                    px.line(
+            if shape.count == 1:
+                px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
+            elif shape.count == 2:
+                px.line(
+                    shape.vertices[0].x,
+                    shape.vertices[0].y,
+                    shape.vertices[1].x,
+                    shape.vertices[1].y,
+                    color,
+                )
+            else:
+                if self.wireframe:
+                    px.trib(
                         shape.vertices[0].x,
                         shape.vertices[0].y,
                         shape.vertices[1].x,
                         shape.vertices[1].y,
+                        shape.vertices[2].x,
+                        shape.vertices[2].y,
                         color,
                     )
                 else:
-                    if self.wireframe:
-                        px.trib(
-                            shape.vertices[0].x,
-                            shape.vertices[0].y,
-                            shape.vertices[1].x,
-                            shape.vertices[1].y,
-                            shape.vertices[2].x,
-                            shape.vertices[2].y,
-                            color,
-                        )
-                    else:
-                        px.tri(
-                            shape.vertices[0].x,
-                            shape.vertices[0].y,
-                            shape.vertices[1].x,
-                            shape.vertices[1].y,
-                            shape.vertices[2].x,
-                            shape.vertices[2].y,
-                            color,
-                        )
+                    px.tri(
+                        shape.vertices[0].x,
+                        shape.vertices[0].y,
+                        shape.vertices[1].x,
+                        shape.vertices[1].y,
+                        shape.vertices[2].x,
+                        shape.vertices[2].y,
+                        color,
+                    )
         # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)
@@ -281,7 +206,9 @@ class App:
             )
             px.text(0, 60, f"Wf={self.wireframe}", 13)
             px.text(0, 66, f"Fo={self.pov}", 14)
-            px.text(0,px.height-6,"DEBUG=KEY_9 MOUSE=KEY_\\ WIREFRAME=KEY_8",7)
+            px.text(
+                0, px.height - 6, "DEBUG=KEY_9 MOUSE=KEY_\\ WIREFRAME=KEY_8", 7
+            )
 
 
 App()
