@@ -27,7 +27,7 @@ def _verify_type(compared_object: object, *types: type) -> int:
                 return i
 
 
-class Vec4:
+class Vec3:
     pass
 
 
@@ -36,18 +36,18 @@ class Shape:
 
 
 class Shape:
-    def __init__(self, vertices: list[Vec4]) -> None:
-        self.vertices: list[Vec4] = vertices
+    def __init__(self, vertices: list[Vec3]) -> None:
+        self.vertices: list[Vec3] = vertices
         self.count = len(vertices)
 
     def __eq__(self, __value: object) -> bool:
         return self.vertices == __value.vertices
 
-    def insert_vertice(self, vertice: Vec4, index: int) -> None:
+    def insert_vertice(self, vertice: Vec3, index: int) -> None:
         self.vertices.insert(index, vertice)
         self.count = len(self.vertices)
 
-    def add_vertice(self, vertice: Vec4) -> None:
+    def add_vertice(self, vertice: Vec3) -> None:
         self.vertices.append(vertice)
         self.count = len(self.vertices)
 
@@ -157,6 +157,46 @@ class Vec2:
             )
         )
 
+    @staticmethod
+    def shape_intersection(subject_poly: list, clip_poly: list):
+        import copy
+
+        output_list = copy.copy(subject_poly)
+        # Greiner-Hormann algo, for the pointers we're using .w
+        # step one from wikipedia
+        for clip_index in range(len(clip_poly)):
+            clip_begin = clip_poly[clip_index]
+            clip_end = clip_poly[(clip_index + 1) % len(clip_poly)]
+            input_list = copy.copy(output_list)
+            output_list = []
+            for subject_index in range(len(input_list)):
+                curr_point = input_list[subject_index]
+                prev_point = input_list[(subject_index - 1) % len(input_list)]
+                inter_point = Vec2.intersection_point(
+                    clip_begin, clip_end, curr_point, prev_point
+                )  # make one for infinite length
+
+                if Vec2.ccw(
+                    clip_begin,
+                    clip_end,
+                    clip_poly[(clip_index + 2) % len(clip_poly)],
+                ) == Vec2.ccw(clip_begin, clip_end, curr_point):
+                    if Vec2.ccw(
+                        clip_begin,
+                        clip_end,
+                        clip_poly[(clip_index + 2) % len(clip_poly)],
+                    ) != Vec2.ccw(clip_begin, clip_end, prev_point):
+                        output_list.append(inter_point)
+                    output_list.append(curr_point)
+                elif Vec2.ccw(
+                    clip_begin,
+                    clip_end,
+                    clip_poly[(clip_index + 2) % len(clip_poly)],
+                ) == Vec2.ccw(clip_begin, clip_end, prev_point):
+                    output_list.append(inter_point)
+
+        return output_list
+
 
 class Mat3:
     pass
@@ -243,14 +283,36 @@ class Vec3:
             ]
         )
 
-    def place_on_plane(t_point: Vec2, A, B, C):
+    def place_on_plane(t_point: Vec2, A, B, C, missing_coord="Z"):
         normal = (A - B).cross(C - B)
-
-        new_z = (
-            (normal.x * (t_point.x - A.x) + normal.y * (t_point.y - A.y))
-            / (-normal.z)
-        ) + A.z
-        return Vec3(t_point.x, t_point.y, new_z)
+        match missing_coord:
+            case "X":
+                new_x = (
+                    (
+                        normal.y * (t_point.x - A.y)
+                        + normal.z * (t_point.y - A.z)
+                    )
+                    / (-normal.x)
+                ) + A.x
+                return Vec3(new_x, t_point.x, t_point.y)
+            case "Y":
+                new_y = (
+                    (
+                        normal.z * (t_point.y - A.z)
+                        + normal.x * (t_point.x - A.x)
+                    )
+                    / (-normal.y)
+                ) + A.y
+                return Vec3(t_point.x, new_y, t_point.y)
+            case "Z":
+                new_z = (
+                    (
+                        normal.x * (t_point.x - A.x)
+                        + normal.y * (t_point.y - A.y)
+                    )
+                    / (-normal.z)
+                ) + A.z
+                return Vec3(t_point.x, t_point.y, new_z)
 
 
 class Mat3:
@@ -391,46 +453,6 @@ class Vec4:
             return self
         return result
 
-    @staticmethod
-    def shape_intersection(subject_poly: list[Vec4], clip_poly: list[Vec4]):
-        import copy
-
-        output_list = copy.copy(subject_poly)
-        # Greiner-Hormann algo, for the pointers we're using .w
-        # step one from wikipedia
-        for clip_index in range(len(clip_poly)):
-            clip_begin = clip_poly[clip_index]
-            clip_end = clip_poly[(clip_index + 1) % len(clip_poly)]
-            input_list = copy.copy(output_list)
-            output_list = []
-            for subject_index in range(len(input_list)):
-                curr_point = input_list[subject_index]
-                prev_point = input_list[(subject_index - 1) % len(input_list)]
-                inter_point = Vec2.intersection_point(
-                    clip_begin, clip_end, curr_point, prev_point
-                )  # make one for infinite length
-
-                if Vec2.ccw(
-                    clip_begin,
-                    clip_end,
-                    clip_poly[(clip_index + 2) % len(clip_poly)],
-                ) == Vec2.ccw(clip_begin, clip_end, curr_point):
-                    if Vec2.ccw(
-                        clip_begin,
-                        clip_end,
-                        clip_poly[(clip_index + 2) % len(clip_poly)],
-                    ) != Vec2.ccw(clip_begin, clip_end, prev_point):
-                        output_list.append(inter_point)
-                    output_list.append(curr_point)
-                elif Vec2.ccw(
-                    clip_begin,
-                    clip_end,
-                    clip_poly[(clip_index + 2) % len(clip_poly)],
-                ) == Vec2.ccw(clip_begin, clip_end, prev_point):
-                    output_list.append(inter_point)
-
-        return output_list
-
 
 class Mat4:
     def __init__(
@@ -544,10 +566,90 @@ class Camera:
     def __init__(self):
         pass
 
-    def _clip_poly_to_fustrum(
-        self, poly, nlb, nlt, nrt, nrb, flb, flt, frt, frb
-    ):
-        raise NotImplementedError
+    def _clip_poly_to_nf_fustrum(self, poly, near, far):
+        # fustrum is sadly in the shape of a cut pyramid
+        # XY clipping is worthless, as Z impacts the cut plane
+        # volume clipping is way too much work for this
+        # instead, we're clipping twice, once XZ, and once YZ
+        # (indeed one is redundant, but makes it easier for me)
+        # to ensure absolutely no cuts, except for the Z, we're using max
+        biggest_coord = 0
+        for vec in poly:
+            local_max = max(abs(vec.x), abs(vec.y), abs(vec.z), abs(vec.w))
+            if local_max > biggest_coord:
+                biggest_coord = local_max
+        fustrum_xy_z = [
+            Vec3(biggest_coord*2, near, 1),
+            Vec3(biggest_coord*2, far, 1),
+            Vec3(-biggest_coord*2, far, 1),
+            Vec3(-biggest_coord*2, near, 1),
+        ]
+        # There's an edge case: if we have the shape perfectly aligned to one of the planes,
+        # We might have issues
+        # If it's the Z plane, we can just skip it
+        # If it's X or Y planes, we need to select the other in advance
+        if len(poly)!=3:
+            raise IndexError
+        Y = False
+        normal = (poly[0] - poly[1]).cross(poly[2] - poly[1])
+        if normal.y ==0:
+            Y=True
+        poly_xz = []
+        if Y:
+            for vec in poly:
+                poly_xz.append(Vec4(vec.y, vec.z, vec.x, vec.w))
+        else:
+            for vec in poly:
+                poly_xz.append(Vec4(vec.x, vec.z, vec.y, vec.w))
+        # we're abusing 2 things here - preservation of order, and preservation of type
+        # this funciton doesn't care what it'll get, as long as it's Vec with .x and .y
+        # thus we can use types for signalization. Hacky asf, but works :)
+        # should write some tests to ensure this functionality is preserved in the future
+        clipped_xz = Vec2.shape_intersection(poly_xz, fustrum_xy_z)
+        result = []
+        try:
+            for point in clipped_xz:
+                if isinstance(point, Vec4):
+                    if Y:
+                        result.append(Vec4(point.z, point.x, point.y, point.w))
+                    else:
+                        result.append(Vec4(point.x, point.z, point.y, point.w))
+                elif isinstance(point, Vec2):
+                    if Y:
+                        result.append(
+                            Vec4(
+                                Vec3.place_on_plane(
+                                    point,
+                                    poly[0],
+                                    poly[1],
+                                    poly[2],
+                                    missing_coord="X",
+                                ).x,
+                                point.x,
+                                point.y,
+                                (point.y + 2 * near) * (far - 2 * near) / far,
+                            )
+                        )
+                    else:
+                        result.append(
+                            Vec4(
+                                point.x,
+                                Vec3.place_on_plane(
+                                    point,
+                                    poly[0],
+                                    poly[1],
+                                    poly[2],
+                                    missing_coord="Y",
+                                ).y,
+                                point.y,
+                                (point.y + 2 * near) * (far - 2 * near) / far,
+                            )
+                        )
+        except Exception as e:
+            # if all on Z plane
+            print("Z EXCEPT",e.with_traceback())
+            return []
+        return result
 
     def get(
         self,
@@ -566,6 +668,9 @@ class Camera:
     ):
         if shape.count != 3:
             raise Exception
+        shape_4 = []
+        for point in shape.vertices:
+            shape_4.append(Vec4(point.x,point.y,point.z,1))
         world_matrix = Mat4.scaling_matrix(scaling)
         world_matrix = rotation.rotation_matrix() * world_matrix
         world_matrix = (
@@ -591,44 +696,35 @@ class Camera:
             math.radians(pov), screen_width / screen_heigth, near, far
         )
         clip_space = []
-        for point in shape.vertices:
+        for point in shape_4:
             point = world_matrix * point
             point = view_matrix * point
             point = perspective_matrix * point
             clip_space.append(point)
-
-        # another reason to have these in __init__ or some other function
-        nlb = Vec4(-near, -near, near, near)
-        nlt = Vec4(-near, near, near, near)
-        nrb = Vec4(near, -near, near, near)
-        nrt = Vec4(near, near, near, near)
-        flb = Vec4(-far, -far, far, far)
-        flt = Vec4(-far, far, far, far)
-        frb = Vec4(far, -far, far, far)
-        frt = Vec4(far, far, far, far)
-
-        clip_space = self._clip_poly_to_fustrum(
-            clip_space, nlb, nlt, nrt, nrb, flb, flt, frt, frb
-        )
-
-        result = []
+            
+        clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
+        # now we have clipped front-back. time to clip lrtb
+        result=[]
+        
         for point in clip_space:
-            if (
-                -point.w < point.x < point.w
-                and -point.w < point.y < point.w
-                and -point.w < point.z < point.w
-            ):
-                point.x = point.x / point.w
-                point.y = point.y / point.w
-                point.z = point.z / point.w
-                point.w = 1
-                point.y = -point.y
-                point += Vec4(1, 1, 0, 0)
-                point.x *= screen_width / 2
-                point.y *= screen_heigth / 2
-                result.append(point)
+            point.x = point.x / point.w
+            point.y = point.y / point.w
+            point.z = point.z / point.w
+            point.w = 1
+            point.y = -point.y
+            point += Vec4(1, 1, 0, 0)
+            point.x *= screen_width / 2
+            point.y *= screen_heigth / 2
+            result.append(point)
+        mixed = Vec2.shape_intersection(result,[Vec2(0,0),Vec2(screen_width,0),Vec2(screen_width,screen_heigth),Vec2(0,screen_heigth)])
+        result = []
+        for point in mixed:
+            if isinstance(point,Vec4):
+                result.append(Vec3(point.x,point.y,point.z))
+            elif isinstance(point,Vec2):
+                result.append(Vec3.place_on_plane(point,shape_4[0],shape_4[1],shape_4[2]))
         if len(result) > 0:
-            return Shape(result)
+            return Shape(result).decompose_to_triangles()
 
 
 def speed_test(func):

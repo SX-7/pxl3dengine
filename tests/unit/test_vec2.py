@@ -64,3 +64,102 @@ def test_is_in_triangle():
     assert not Vec2.is_in_triangle(D,A,B,C)
     assert Vec2.is_in_triangle(A,A,B,C)
     assert Vec2.is_in_triangle(Vec2(-2,5),A,B,C)
+    
+def test_shape_intersection():
+    """Due to shape intersection being possibly run on ccw and/or cw
+    coordinates (cuz y-flipping), both need to work"""
+    clip_poly = [
+        Vec2(-10, -10),
+        Vec2(10, -10),
+        Vec2(10, 10),
+        Vec2(-10, 10),
+    ]
+    subject_poly = [
+        Vec2(-20, 10),
+        Vec2(-20, 35),
+        Vec2(30, -15),
+    ]
+    result = Vec2.shape_intersection(subject_poly, clip_poly)
+    # order? Any
+    assert (
+        result
+        == [
+            Vec2(-10, 5),
+            Vec2(-10, 10),
+            Vec2(5, 10),
+            Vec2(10, 5),
+            Vec2(10, -5),
+        ]
+        or result
+        == [
+            Vec2(10, -5),
+            Vec2(-10, 5),
+            Vec2(-10, 10),
+            Vec2(5, 10),
+            Vec2(10, 5),
+        ]
+        or result
+        == [
+            Vec2(10, 5),
+            Vec2(10, -5),
+            Vec2(-10, 5),
+            Vec2(-10, 10),
+            Vec2(5, 10),
+        ]
+        or result
+        == [
+            Vec2(5, 10),
+            Vec2(10, 5),
+            Vec2(10, -5),
+            Vec2(-10, 5),
+            Vec2(-10, 10),
+        ]
+        or result
+        == [
+            Vec2(-10, 10),
+            Vec2(5, 10),
+            Vec2(10, 5),
+            Vec2(10, -5),
+            Vec2(-10, 5),
+        ]
+        or result
+        == [
+            Vec2(10, -5),
+            Vec2(10, 5),
+            Vec2(5, 10),
+            Vec2(-10, 10),
+            Vec2(-10, 5),
+        ]
+        or result
+        == [
+            Vec2(-10, 5),
+            Vec2(10, -5),
+            Vec2(10, 5),
+            Vec2(5, 10),
+            Vec2(-10, 10),
+        ]
+        or result
+        == [
+            Vec2(-10, 10),
+            Vec2(-10, 5),
+            Vec2(10, -5),
+            Vec2(10, 5),
+            Vec2(5, 10),
+        ]
+        or result
+        == [
+            Vec2(5, 10),
+            Vec2(-10, 10),
+            Vec2(-10, 5),
+            Vec2(10, -5),
+            Vec2(10, 5),
+        ]
+        or result
+        == [
+            Vec2(10, 5),
+            Vec2(5, 10),
+            Vec2(-10, 10),
+            Vec2(-10, 5),
+            Vec2(10, -5),
+        ]
+    )
