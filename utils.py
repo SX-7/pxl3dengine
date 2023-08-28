@@ -1,6 +1,7 @@
 import math
 import functools
 import time
+import copy
 
 
 def _verify_type(compared_object: object, *types: type) -> int:
@@ -159,8 +160,7 @@ class Vec2:
 
     @staticmethod
     def shape_intersection(subject_poly: list, clip_poly: list):
-        import copy
-
+        
         output_list = copy.copy(subject_poly)
         # Greiner-Hormann algo, for the pointers we're using .w
         # step one from wikipedia
@@ -388,19 +388,19 @@ class Vec4:
             self.z + other.z,
             self.w + other.w,
         )
-
+    # WHY DID I WRITE IT WRONG WAY BACK
     def __sub__(self, other):
         return Vec4(
             self.x - other.x,
             self.y - other.y,
             self.z - other.z,
-            self.w + other.w,
+            self.w - other.w,
         )
-
+    # IT'D SAVE ME SO MUCH TIME IF I FIXED IT !!PROPERLY!!
     def __mul__(self, other):
         _verify_type(other, int, float)
         return Vec4(
-            self.x * other, self.y * other, self.z * other, self.w + other
+            self.x * other, self.y * other, self.z * other, self.w * other
         )
 
     def __truediv__(self, other):
@@ -650,6 +650,75 @@ class Camera:
             return []
         return result
 
+    def _metadata_clip(self,subject,clip):
+        output_list = copy.copy(subject)
+        # Greiner-Hormann algo, for the pointers we're using .w
+        # step one from wikipedia
+        for clip_index in range(len(clip)):
+            clip_begin = clip[clip_index]
+            clip_end = clip[(clip_index + 1) % len(clip)]
+            input_list = copy.copy(output_list)
+            output_list = []
+            for subject_index in range(len(input_list)):
+                curr_point = input_list[subject_index]
+                prev_point = input_list[(subject_index - 1) % len(input_list)]
+                inter_point = Vec2.intersection_point(
+                    clip_begin, clip_end, curr_point, prev_point
+                )  # make one for infinite length
+                # now we insert the data unto the inter_point
+                # we assume that subject is Vec4
+                if isinstance(inter_point,Vec2):
+                    diff = curr_point - prev_point
+                    try:
+                        ratio = (inter_point.x - prev_point.x )/(curr_point.x-prev_point.x)
+                    except:
+                        ratio = (inter_point.y - prev_point.y )/(curr_point.y-prev_point.y)
+                    print(clip_begin,clip_end,diff,inter_point,prev_point,curr_point)
+                    inter_point = prev_point + diff*ratio
+                if Vec2.ccw(
+                    clip_begin,
+                    clip_end,
+                    clip[(clip_index + 2) % len(clip)],
+                ) == Vec2.ccw(clip_begin, clip_end, curr_point):
+                    if Vec2.ccw(
+                        clip_begin,
+                        clip_end,
+                        clip[(clip_index + 2) % len(clip)],
+                    ) != Vec2.ccw(clip_begin, clip_end, prev_point):
+                        output_list.append(inter_point)
+                        print("A1")
+                    output_list.append(curr_point)
+                elif Vec2.ccw(
+                    clip_begin,
+                    clip_end,
+                    clip[(clip_index + 2) % len(clip)],
+                ) == Vec2.ccw(clip_begin, clip_end, prev_point):
+                    output_list.append(inter_point)
+                    print("A2")
+        return output_list
+
+    def _clip_poly_sides_fustrum(self,poly,near,far,pov):
+        xy_z_clip_coords=[
+            Vec2(-math.tan(math.radians(pov/2))*near,near),
+            Vec2(-math.tan(math.radians(pov/2))*far,far),
+            Vec2(math.tan(math.radians(pov/2))*far,far),
+            Vec2(math.tan(math.radians(pov/2))*near,near),
+        ]
+        swapped_xzyw=[]
+        for point in poly:
+            swapped_xzyw.append(Vec4(point.x,point.z,point.y,point.w))
+        clipped = self._metadata_clip(swapped_xzyw,xy_z_clip_coords)
+        swapped_yzxw=[]
+        for point in clipped:
+            swapped_yzxw.append(Vec4(point.z,point.y,point.x,point.w))
+        clipped = self._metadata_clip(swapped_yzxw,xy_z_clip_coords)
+        clipped_poly =[]
+        for point in clipped:
+            clipped_poly.append(Vec4(point.z,point.x,point.y,point.w))
+        return clipped_poly
+
+    
+    
     def get(
         self,
         shape: Shape,
@@ -703,8 +772,9 @@ class Camera:
 
         clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
         # now we have clipped front-back. time to clip lrtb
+        # I've tried a lot, but manual seems to be the route, sadly
+        clip_space = self._clip_poly_sides_fustrum(clip_space,near,far,pov)
         result = []
-
         for point in clip_space:
             point.x = point.x / point.w
             point.y = point.y / point.w
@@ -715,25 +785,7 @@ class Camera:
             point.x *= screen_width / 2
             point.y *= screen_heigth / 2
             result.append(point)
-        mixed = Vec2.shape_intersection(
-            result,
-            [
-                Vec2(0, 0),
-                Vec2(screen_width, 0),
-                Vec2(screen_width, screen_heigth),
-                Vec2(0, screen_heigth),
-            ],
-        )
-        result = []
-        for point in mixed:
-            if isinstance(point, Vec4):
-                result.append(Vec3(point.x, point.y, point.z))
-            elif isinstance(point, Vec2):
-                result.append(
-                    Vec3.place_on_plane(
-                        point, shape_4[0], shape_4[1], shape_4[2]
-                    )
-                )
+        
         if len(result) > 0:
             return Shape(result).decompose_to_triangles()
 
