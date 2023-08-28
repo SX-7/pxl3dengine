@@ -24,20 +24,20 @@ class App:
         self.shape_data.append(
             Shape(
                 [
-                    Vec3(-10, 10, 10),
-                    Vec3(10, 10, 10),
-                    Vec3(10, -10, 10),
-                    Vec3(-10, -10, 10),
+                    Vec3(-math.tan(math.radians(175) / 2) * 0.1, math.tan(math.radians(175) / 2) * 0.1, 29.8999),
+                    Vec3(math.tan(math.radians(175) / 2) * 0.1, math.tan(math.radians(175) / 2) * 0.1, 29.8999),
+                    Vec3(math.tan(math.radians(175) / 2) * 0.1, -math.tan(math.radians(175) / 2) * 0.1, 29.8999),
+                    Vec3(-math.tan(math.radians(175) / 2) * 0.1, -math.tan(math.radians(175) / 2) * 0.1, 29.8999),
                 ]
             )
         )
         self.shape_data.append(
             Shape(
                 [
-                    Vec3(-10, -10, -10),
-                    Vec3(10, -10, -10),
-                    Vec3(10, 10, -10),
-                    Vec3(-10, 10, -10),
+                    Vec3(-math.tan(math.radians(175) / 2) * 99, -math.tan(math.radians(175) / 2) * 99, -69.99),
+                    Vec3(math.tan(math.radians(175) / 2) * 99, -math.tan(math.radians(175) / 2) * 99, -69.99),
+                    Vec3(math.tan(math.radians(175) / 2) * 99, math.tan(math.radians(175) / 2) * 99, -69.99),
+                    Vec3(-math.tan(math.radians(175) / 2) * 99, math.tan(math.radians(175) / 2) * 99, -69.99),
                 ]
             )
         )
