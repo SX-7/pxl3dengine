@@ -112,9 +112,6 @@ class Vec2:
     def __neg__(self):
         return self.__mul__(-1)
 
-    def length(self):
-        return math.sqrt(self.x * self.x + self.y * self.y)
-
     @staticmethod
     def ccw(A, B, C) -> bool:
         return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
@@ -133,13 +130,16 @@ class Vec2:
         xdiff = Vec2(A.x - B.x, C.x - D.x)
         ydiff = Vec2(A.y - B.y, C.y - D.y)
 
-        div = xdiff.x * ydiff.y - xdiff.y * ydiff.x
+        def det(a, b):
+            return a.x * b.y - a.y * b.x
+
+        div = det(xdiff, ydiff)
         if div == 0:
             return False
 
-        d = Vec2(A.x * B.y - A.y * B.x, C.x * D.y - C.y * D.x)
-        x = (d.x * xdiff.y - d.y * xdiff.x) / div
-        y = (d.x * ydiff.y - d.y * ydiff.x) / div
+        d = Vec2(det(A, B), det(C, D))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
         return Vec2(x, y)
 
     @staticmethod
@@ -225,9 +225,6 @@ class Vec3:
     def __mul__(self, other):
         _verify_type(other, int, float)
         return Vec3(self.x * other, self.y * other, self.z * other)
-
-    def length(self):
-        return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
 
     def dot(self, other):
         return self.x * other.x + self.y * other.y + self.z * other.z
@@ -316,51 +313,6 @@ class Vec3:
                     / (-normal.z)
                 ) + A.z
                 return Vec3(t_point.x, t_point.y, new_z)
-
-    # putting lotta faith in Vec2 not breaking, might need to re-write JIC
-    @staticmethod
-    def shape_intersection(subject_poly: list, clip_poly: list):
-        import copy
-
-        output_list = copy.copy(subject_poly)
-        for clip_index in range(len(clip_poly)):
-            clip_begin = clip_poly[clip_index]
-            clip_end = clip_poly[(clip_index + 1) % len(clip_poly)]
-            input_list = copy.copy(output_list)
-            output_list = []
-            for subject_index in range(len(input_list)):
-                curr_point = input_list[subject_index]
-                prev_point = input_list[(subject_index - 1) % len(input_list)]
-                inter_point = Vec2.intersection_point(
-                    clip_begin, clip_end, curr_point, prev_point
-                )  # make one for infinite length
-                if isinstance(inter_point, (Vec2, Vec3)):
-                    inter_point = Vec3(
-                        inter_point.x,
-                        inter_point.y,
-                        (inter_point.length() / curr_point.length())
-                        * curr_point.z,
-                    )
-                if Vec2.ccw(
-                    clip_begin,
-                    clip_end,
-                    clip_poly[(clip_index + 2) % len(clip_poly)],
-                ) == Vec2.ccw(clip_begin, clip_end, curr_point):
-                    if Vec2.ccw(
-                        clip_begin,
-                        clip_end,
-                        clip_poly[(clip_index + 2) % len(clip_poly)],
-                    ) != Vec2.ccw(clip_begin, clip_end, prev_point):
-                        output_list.append(inter_point)
-                    output_list.append(curr_point)
-                elif Vec2.ccw(
-                    clip_begin,
-                    clip_end,
-                    clip_poly[(clip_index + 2) % len(clip_poly)],
-                ) == Vec2.ccw(clip_begin, clip_end, prev_point):
-                    output_list.append(inter_point)
-
-        return output_list
 
 
 class Mat3:
@@ -456,9 +408,6 @@ class Vec4:
 
     def __neg__(self):
         return self.__mul__(-1)
-
-    def length(self):
-        return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
 
     def cross(self, other):
         t = Vec3.cross(self, other)
@@ -630,10 +579,10 @@ class Camera:
             if local_max > biggest_coord:
                 biggest_coord = local_max
         fustrum_xy_z = [
-            Vec3(biggest_coord * 2, -near, 1),
-            Vec3(biggest_coord * 2, -far, 1),
-            Vec3(-biggest_coord * 2, -far, 1),
-            Vec3(-biggest_coord * 2, -near, 1),
+            Vec3(biggest_coord * 2, near, 1),
+            Vec3(biggest_coord * 2, far, 1),
+            Vec3(-biggest_coord * 2, far, 1),
+            Vec3(-biggest_coord * 2, near, 1),
         ]
         # There's an edge case: if we have the shape perfectly aligned to one of the planes,
         # We might have issues
@@ -701,35 +650,6 @@ class Camera:
             return []
         return result
 
-    def _clip_poly_sides_fustrum(self, poly, near, far, pov):
-        if len(poly) < 3:
-            return []
-        fustrum_xy_z = [
-            Vec2(-math.tan(math.radians(pov) / 2) * near, -near),
-            Vec2(-math.tan(math.radians(pov) / 2) * far, -far),
-            Vec2(math.tan(math.radians(pov) / 2) * far, -far),
-            Vec2(math.tan(math.radians(pov) / 2) * near, -near),
-        ]
-        comp_poly = []
-        for point in poly:
-            comp_poly.append(Vec3(point.x, point.z, point.y))
-        clip_poly = Vec3.shape_intersection(comp_poly, fustrum_xy_z)
-        comp_poly = []
-        for point in clip_poly:
-            comp_poly.append(Vec3(point.z, point.y, point.x))
-        clip_poly = Vec3.shape_intersection(comp_poly, fustrum_xy_z)
-        result = []
-        for point in clip_poly:
-            result.append(
-                Vec4(
-                    point.z,
-                    point.x,
-                    point.y,
-                    (point.y + 2 * near) * (far - 2 * near) / far,
-                )
-            )
-        return result
-
     def get(
         self,
         shape: Shape,
@@ -778,16 +698,14 @@ class Camera:
         for point in shape_4:
             point = world_matrix * point
             point = view_matrix * point
+            point = perspective_matrix * point
             clip_space.append(point)
 
         clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
-        
-        clip_space = self._clip_poly_sides_fustrum(clip_space, near, far, pov)
         # now we have clipped front-back. time to clip lrtb
         result = []
 
         for point in clip_space:
-            point = perspective_matrix * point
             point.x = point.x / point.w
             point.y = point.y / point.w
             point.z = point.z / point.w
@@ -797,6 +715,25 @@ class Camera:
             point.x *= screen_width / 2
             point.y *= screen_heigth / 2
             result.append(point)
+        mixed = Vec2.shape_intersection(
+            result,
+            [
+                Vec2(0, 0),
+                Vec2(screen_width, 0),
+                Vec2(screen_width, screen_heigth),
+                Vec2(0, screen_heigth),
+            ],
+        )
+        result = []
+        for point in mixed:
+            if isinstance(point, Vec4):
+                result.append(Vec3(point.x, point.y, point.z))
+            elif isinstance(point, Vec2):
+                result.append(
+                    Vec3.place_on_plane(
+                        point, shape_4[0], shape_4[1], shape_4[2]
+                    )
+                )
         if len(result) > 0:
             return Shape(result).decompose_to_triangles()
 
