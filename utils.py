@@ -698,11 +698,12 @@ class Camera:
         return output_list
 
     def _clip_poly_sides_fustrum(self,poly,near,far,pov):
+        # TODO: non-square aspect ratios
         xy_z_clip_coords=[
-            Vec2(-math.tan(math.radians(pov/2))*near,near),
+            Vec2(0,0),
             Vec2(-math.tan(math.radians(pov/2))*far,far),
             Vec2(math.tan(math.radians(pov/2))*far,far),
-            Vec2(math.tan(math.radians(pov/2))*near,near),
+            #Vec2(math.tan(math.radians(pov/2))*near,near),
         ]
         swapped_xzyw=[]
         for point in poly:

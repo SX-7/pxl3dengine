@@ -34,10 +34,10 @@ class App:
         self.shape_data.append(
             Shape(
                 [
-                    Vec3(-10, -10, -10),
-                    Vec3(10, -10, -10),
-                    Vec3(10, 10, -10),
-                    Vec3(-10, 10, -10),
+                    Vec3(-math.tan(math.radians(175/2))*100, -math.tan(math.radians(175/2))*100, -69.99),
+                    Vec3(math.tan(math.radians(175/2))*100, -math.tan(math.radians(175/2))*100, -69.99),
+                    Vec3(math.tan(math.radians(175/2))*100, math.tan(math.radians(175/2))*100, -69.99),
+                    Vec3(-math.tan(math.radians(175/2))*100, math.tan(math.radians(175/2))*100, -69.99),
                 ]
             )
         )
