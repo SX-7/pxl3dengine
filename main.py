@@ -24,6 +24,16 @@ class App:
         self.shape_data.append(
             Shape(
                 [
+                    Vec3(-5, 0, 0),
+                    Vec3(0, 5, 0),
+                    Vec3(5, 0, 0),
+                    Vec3(0, -5, 0),
+                ]
+            )
+        )
+        self.shape_data.append(
+            Shape(
+                [
                     Vec3(-10, 10, 10),
                     Vec3(10, 10, 10),
                     Vec3(10, -10, 10),

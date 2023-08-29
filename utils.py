@@ -735,7 +735,7 @@ class Camera:
         near: float = 0.1,
         far: float = 100,
     ):
-        # pre-pipeline shape transforms
+        # vertex shader stage
         if shape.count < 3:
             raise Exception
         shape_4 = []
@@ -773,7 +773,6 @@ class Camera:
             clip_space.append(point)
         # vertex processing - clipping
         clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
-        # now we have clipped front-back. time to clip lrtb
         clip_space = self._clip_poly_sides_fustrum(clip_space, near, far, pov)
         result = []
         for point in clip_space:
@@ -786,7 +785,7 @@ class Camera:
             point.x *= screen_width / 2
             point.y *= screen_heigth / 2
             result.append(point)
-
+        # vertex processing - face culling
         if len(result) > 0:
             tris = Shape(result).decompose_to_triangles()
             result = []
