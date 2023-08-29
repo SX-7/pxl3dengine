@@ -704,7 +704,6 @@ class Camera:
         ]
         swapped_xzyw=[]
         for point in poly:
-            print(point)
             swapped_xzyw.append(Vec4(point.x,point.z,point.y,point.w))
         clipped = self._metadata_clip(swapped_xzyw,xy_z_clip_coords)
         swapped_yzxw=[]
