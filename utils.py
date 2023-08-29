@@ -4,6 +4,21 @@ import time
 import copy
 
 
+def speed_test(func):
+    """Print the runtime of the decorated function"""
+
+    @functools.wraps(func)
+    def wrapper_timer(*args, **kwargs):
+        start_time = time.perf_counter()  # 1
+        value = func(*args, **kwargs)
+        end_time = time.perf_counter()  # 2
+        run_time = end_time - start_time  # 3
+        print(f"Finished {func.__name__!r} in {run_time:.4f} secs")
+        return value
+
+    return wrapper_timer
+
+
 def _verify_type(compared_object: object, *types: type) -> int:
     """Throws a descriptive error when types of two objects don't align.
     Returns an int corrensponding to position of the type in `types` if
@@ -797,18 +812,44 @@ class Camera:
                 ):
                     result.append(triangle)
             return result
+        else:
+            return []
 
 
-def speed_test(func):
-    """Print the runtime of the decorated function"""
+# doing it as a func, gonnna swap to class (with some caching) later
 
-    @functools.wraps(func)
-    def wrapper_timer(*args, **kwargs):
-        start_time = time.perf_counter()  # 1
-        value = func(*args, **kwargs)
-        end_time = time.perf_counter()  # 2
-        run_time = end_time - start_time  # 3
-        print(f"Finished {func.__name__!r} in {run_time:.4f} secs")
-        return value
 
-    return wrapper_timer
+def render(
+    shapes: list[Shape],
+    screen_width: int,
+    screen_heigth: int,
+    world_coordinates: Vec3 = Vec3(0, 0, 0),
+    rotation: Vec4 = Vec4(0, 0, 0, 0),
+    scaling: Vec3 = Vec3(1, 1, 1),
+    camera_pos: Vec3 = Vec3(0, 0, 64),
+    camera_front: Vec3 = Vec3(0, 0, 1),
+    world_up: Vec3 = Vec3(0, 1, 0),
+    pov: float = 100,
+    near: float = 0.1,
+    far: float = 100,
+):
+    cam = Camera()
+    result = []
+    for shape in shapes:
+        result.extend(
+            cam.get(
+                shape,
+                screen_width,
+                screen_heigth,
+                world_coordinates,
+                rotation,
+                scaling,
+                camera_pos,
+                camera_front,
+                world_up,
+                pov,
+                near,
+                far,
+            )
+        )
+    return result

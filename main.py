@@ -1,5 +1,5 @@
 import pyxel as px
-from utils import Vec3, Camera, Vec2, Vec4, Shape
+from utils import Vec3, render, Vec2, Vec4, Shape
 import math
 
 
@@ -12,7 +12,6 @@ class App:
         self.wireframe = True
         self.pov = 100
         self.camera_position = Vec3(0, 0, 30)
-        self.camera = Camera()
         self.capture_mouse = True
         px.mouse(False)
         self.mouse_position_relative = Vec2(0, 0)
@@ -179,20 +178,16 @@ class App:
             else:
                 self.debug = True
         # process pixel's positions
-        self.screen_shapes = []
-        for shape in self.shape_data:
-            sh = self.camera.get(
-                shape,
-                camera_pos=self.camera_position,
-                screen_heigth=px.height,
-                screen_width=px.width,
-                rotation=self.object_rotation,
-                camera_front=self.camera_front,
-                world_up=self.world_up,
-                pov=self.pov,
-            )
-            if sh:
-                self.screen_shapes.append(sh)
+        self.screen_shapes = render(
+            self.shape_data,
+            camera_pos=self.camera_position,
+            screen_heigth=px.height,
+            screen_width=px.width,
+            rotation=self.object_rotation,
+            camera_front=self.camera_front,
+            world_up=self.world_up,
+            pov=self.pov,
+        )
 
     # @speed_test
     def draw(self):
@@ -201,41 +196,40 @@ class App:
         # draw pixels
         color = 0
         # self.screen_shapes.sort(key=lambda inp: -inp[0].vertices[0].z)
-        for shapes in self.screen_shapes:
+        for shape in self.screen_shapes:
             color += 1
             color %= 16
-            for shape in shapes:    
-                if shape.count == 1:
-                    px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
-                elif shape.count == 2:
-                    px.line(
+            if shape.count == 1:
+                px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
+            elif shape.count == 2:
+                px.line(
+                    shape.vertices[0].x,
+                    shape.vertices[0].y,
+                    shape.vertices[1].x,
+                    shape.vertices[1].y,
+                    color,
+                )
+            else:
+                if self.wireframe:
+                    px.trib(
                         shape.vertices[0].x,
                         shape.vertices[0].y,
                         shape.vertices[1].x,
                         shape.vertices[1].y,
+                        shape.vertices[2].x,
+                        shape.vertices[2].y,
                         color,
                     )
                 else:
-                    if self.wireframe:
-                        px.trib(
-                            shape.vertices[0].x,
-                            shape.vertices[0].y,
-                            shape.vertices[1].x,
-                            shape.vertices[1].y,
-                            shape.vertices[2].x,
-                            shape.vertices[2].y,
-                            color,
-                        )
-                    else:
-                        px.tri(
-                            shape.vertices[0].x,
-                            shape.vertices[0].y,
-                            shape.vertices[1].x,
-                            shape.vertices[1].y,
-                            shape.vertices[2].x,
-                            shape.vertices[2].y,
-                            color,
-                        )
+                    px.tri(
+                        shape.vertices[0].x,
+                        shape.vertices[0].y,
+                        shape.vertices[1].x,
+                        shape.vertices[1].y,
+                        shape.vertices[2].x,
+                        shape.vertices[2].y,
+                        color,
+                    )
         # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)
