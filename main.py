@@ -182,7 +182,7 @@ class App:
                 pov=self.pov,
             )
             if sh:
-                self.screen_shapes.extend(sh)
+                self.screen_shapes.append(sh)
 
     # @speed_test
     def draw(self):
@@ -191,40 +191,41 @@ class App:
         # draw pixels
         color = 0
         # self.screen_shapes.sort(key=lambda inp: -inp[0].vertices[0].z)
-        for shape in self.screen_shapes:
+        for shapes in self.screen_shapes:
             color += 1
             color %= 16
-            if shape.count == 1:
-                px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
-            elif shape.count == 2:
-                px.line(
-                    shape.vertices[0].x,
-                    shape.vertices[0].y,
-                    shape.vertices[1].x,
-                    shape.vertices[1].y,
-                    color,
-                )
-            else:
-                if self.wireframe:
-                    px.trib(
+            for shape in shapes:    
+                if shape.count == 1:
+                    px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
+                elif shape.count == 2:
+                    px.line(
                         shape.vertices[0].x,
                         shape.vertices[0].y,
                         shape.vertices[1].x,
                         shape.vertices[1].y,
-                        shape.vertices[2].x,
-                        shape.vertices[2].y,
                         color,
                     )
                 else:
-                    px.tri(
-                        shape.vertices[0].x,
-                        shape.vertices[0].y,
-                        shape.vertices[1].x,
-                        shape.vertices[1].y,
-                        shape.vertices[2].x,
-                        shape.vertices[2].y,
-                        color,
-                    )
+                    if self.wireframe:
+                        px.trib(
+                            shape.vertices[0].x,
+                            shape.vertices[0].y,
+                            shape.vertices[1].x,
+                            shape.vertices[1].y,
+                            shape.vertices[2].x,
+                            shape.vertices[2].y,
+                            color,
+                        )
+                    else:
+                        px.tri(
+                            shape.vertices[0].x,
+                            shape.vertices[0].y,
+                            shape.vertices[1].x,
+                            shape.vertices[1].y,
+                            shape.vertices[2].x,
+                            shape.vertices[2].y,
+                            color,
+                        )
         # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)
