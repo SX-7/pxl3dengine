@@ -1,3 +1,8 @@
-~~Currently not progressing it due to:~~ Heck it, it's way too fun so far
-- pyxel provides no support for clipping, requiring lots of `if`s on our side to not fall down into hellhole of performance death at close ranges
-- cpu-side z-buffer is required for object drawing order, requiring possibly single-pixel draw calls. Which would absolutely ruin performance, as 256x256 screen of single pixel draw calls is limiting pyxel's fps to 25fps on an average machine, using bigger screens/more fps/drawing more than once per pixel would make it plummet, since the calls aren't buffered at all, sadly
+# What?
+Software renderer, using python and [pyxel](https://github.com/kitao/pyxel)
+# Why?
+Learning about rendering in general through creation of my own renderer. 
+Python was chosen as I am most comfortable with it, and Pyxel provides a nice framework that limits the things I need to think about at the same time.
+*Performance is **not** a primary concern, but >10 FPS is preferred*
+# How?
+[Learn OpenGL](https://learnopengl.com/) provides excellent guidelines.
