@@ -160,7 +160,6 @@ class Vec2:
 
     @staticmethod
     def shape_intersection(subject_poly: list, clip_poly: list):
-        
         output_list = copy.copy(subject_poly)
         # Greiner-Hormann algo, for the pointers we're using .w
         # step one from wikipedia
@@ -388,6 +387,7 @@ class Vec4:
             self.z + other.z,
             self.w + other.w,
         )
+
     # WHY DID I WRITE IT WRONG WAY BACK
     def __sub__(self, other):
         return Vec4(
@@ -396,6 +396,7 @@ class Vec4:
             self.z - other.z,
             self.w - other.w,
         )
+
     # IT'D SAVE ME SO MUCH TIME IF I FIXED IT !!PROPERLY!!
     def __mul__(self, other):
         _verify_type(other, int, float)
@@ -650,7 +651,7 @@ class Camera:
             return []
         return result
 
-    def _metadata_clip(self,subject,clip):
+    def _metadata_clip(self, subject, clip):
         output_list = copy.copy(subject)
         # Greiner-Hormann algo, for the pointers we're using .w
         # step one from wikipedia
@@ -667,13 +668,17 @@ class Camera:
                 )  # make one for infinite length
                 # now we insert the data unto the inter_point
                 # we assume that subject is Vec4
-                if isinstance(inter_point,Vec2):
+                if isinstance(inter_point, Vec2):
                     diff = curr_point - prev_point
                     try:
-                        ratio = (inter_point.x - prev_point.x )/(curr_point.x-prev_point.x)
+                        ratio = (inter_point.x - prev_point.x) / (
+                            curr_point.x - prev_point.x
+                        )
                     except:
-                        ratio = (inter_point.y - prev_point.y )/(curr_point.y-prev_point.y)
-                    inter_point = prev_point + diff*ratio
+                        ratio = (inter_point.y - prev_point.y) / (
+                            curr_point.y - prev_point.y
+                        )
+                    inter_point = prev_point + diff * ratio
                 if Vec2.ccw(
                     clip_begin,
                     clip_end,
@@ -694,29 +699,27 @@ class Camera:
                     output_list.append(inter_point)
         return output_list
 
-    def _clip_poly_sides_fustrum(self,poly,near,far,pov):
+    def _clip_poly_sides_fustrum(self, poly, near, far, pov):
         # TODO: non-square aspect ratios
-        xy_z_clip_coords=[
-            Vec2(-2*near,0),
-            Vec2(-far,far),
-            Vec2(far,far),
-            Vec2(2*near,0),
+        xy_z_clip_coords = [
+            Vec2(-2 * near, 0),
+            Vec2(-far, far),
+            Vec2(far, far),
+            Vec2(2 * near, 0),
         ]
-        swapped_xzyw=[]
+        swapped_xzyw = []
         for point in poly:
-            swapped_xzyw.append(Vec4(point.x,point.z,point.y,point.w))
-        clipped = self._metadata_clip(swapped_xzyw,xy_z_clip_coords)
-        swapped_yzxw=[]
+            swapped_xzyw.append(Vec4(point.x, point.z, point.y, point.w))
+        clipped = self._metadata_clip(swapped_xzyw, xy_z_clip_coords)
+        swapped_yzxw = []
         for point in clipped:
-            swapped_yzxw.append(Vec4(point.z,point.y,point.x,point.w))
-        clipped = self._metadata_clip(swapped_yzxw,xy_z_clip_coords)
-        clipped_poly =[]
+            swapped_yzxw.append(Vec4(point.z, point.y, point.x, point.w))
+        clipped = self._metadata_clip(swapped_yzxw, xy_z_clip_coords)
+        clipped_poly = []
         for point in clipped:
-            clipped_poly.append(Vec4(point.z,point.x,point.y,point.w))
+            clipped_poly.append(Vec4(point.z, point.x, point.y, point.w))
         return clipped_poly
 
-    
-    
     def get(
         self,
         shape: Shape,
@@ -732,6 +735,7 @@ class Camera:
         near: float = 0.1,
         far: float = 100,
     ):
+        # pre-pipeline shape transforms
         if shape.count < 3:
             raise Exception
         shape_4 = []
@@ -767,11 +771,10 @@ class Camera:
             point = view_matrix * point
             point = perspective_matrix * point
             clip_space.append(point)
-
+        # vertex processing - clipping
         clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
         # now we have clipped front-back. time to clip lrtb
-        # I've tried a lot, but manual seems to be the route, sadly
-        clip_space = self._clip_poly_sides_fustrum(clip_space,near,far,pov)
+        clip_space = self._clip_poly_sides_fustrum(clip_space, near, far, pov)
         result = []
         for point in clip_space:
             point.x = point.x / point.w
@@ -783,9 +786,18 @@ class Camera:
             point.x *= screen_width / 2
             point.y *= screen_heigth / 2
             result.append(point)
-        
+
         if len(result) > 0:
-            return Shape(result).decompose_to_triangles()
+            tris = Shape(result).decompose_to_triangles()
+            result = []
+            for triangle in tris:
+                if Vec2.ccw(
+                    triangle.vertices[0],
+                    triangle.vertices[1],
+                    triangle.vertices[2],
+                ):
+                    result.append(triangle)
+            return result
 
 
 def speed_test(func):

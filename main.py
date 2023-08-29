@@ -35,13 +35,52 @@ class App:
             Shape(
                 [
                     Vec3(-10, 10, -10),
+                    Vec3(-10, -10, -10),
+                    Vec3(10, -10, -10),
+                    Vec3(10, 10, -10),
+                ]
+            )
+        )
+        self.shape_data.append(
+            Shape(
+                [
                     Vec3(10, 10, -10),
                     Vec3(10, -10, -10),
+                    Vec3(10, -10, 10),
+                    Vec3(10, 10, 10),
+                ]
+            )
+        )
+        self.shape_data.append(
+            Shape(
+                [
+                    Vec3(-10, 10, -10),
+                    Vec3(-10, 10, 10),
+                    Vec3(-10, -10, 10),
                     Vec3(-10, -10, -10),
                 ]
             )
         )
-        
+        self.shape_data.append(
+            Shape(
+                [
+                    Vec3(-10, 10, -10),
+                    Vec3(10, 10, -10),
+                    Vec3(10, 10, 10),
+                    Vec3(-10, 10, 10),
+                ]
+            )
+        )
+        self.shape_data.append(
+            Shape(
+                [
+                    Vec3(10, -10, -10),
+                    Vec3(-10, -10, -10),
+                    Vec3(-10, -10, 10),
+                    Vec3(10, -10, 10),
+                ]
+            )
+        )
         # axis of rotation for the cube
         self.object_rotation = Vec4(0, 1, 0, 0)
         px.run(self.update, self.draw)
