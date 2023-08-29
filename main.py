@@ -24,23 +24,24 @@ class App:
         self.shape_data.append(
             Shape(
                 [
-                    Vec3(-10, 10, 29),
-                    Vec3(10, 10, 29),
-                    Vec3(10, -10, 29),
-                    Vec3(-10, -10, 29),
+                    Vec3(-10, 10, 10),
+                    Vec3(10, 10, 10),
+                    Vec3(10, -10, 10),
+                    Vec3(-10, -10, 10),
                 ]
             )
         )
         self.shape_data.append(
             Shape(
                 [
-                    Vec3(-math.tan(math.radians(175/2))*100, -math.tan(math.radians(175/2))*100, -69.99),
-                    Vec3(math.tan(math.radians(175/2))*100, -math.tan(math.radians(175/2))*100, -69.99),
-                    Vec3(math.tan(math.radians(175/2))*100, math.tan(math.radians(175/2))*100, -69.99),
-                    Vec3(-math.tan(math.radians(175/2))*100, math.tan(math.radians(175/2))*100, -69.99),
+                    Vec3(-10, 10, -10),
+                    Vec3(10, 10, -10),
+                    Vec3(10, -10, -10),
+                    Vec3(-10, -10, -10),
                 ]
             )
         )
+        
         # axis of rotation for the cube
         self.object_rotation = Vec4(0, 1, 0, 0)
         px.run(self.update, self.draw)

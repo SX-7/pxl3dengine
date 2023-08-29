@@ -673,7 +673,6 @@ class Camera:
                         ratio = (inter_point.x - prev_point.x )/(curr_point.x-prev_point.x)
                     except:
                         ratio = (inter_point.y - prev_point.y )/(curr_point.y-prev_point.y)
-                    print(clip_begin,clip_end,diff,inter_point,prev_point,curr_point)
                     inter_point = prev_point + diff*ratio
                 if Vec2.ccw(
                     clip_begin,
@@ -686,7 +685,6 @@ class Camera:
                         clip[(clip_index + 2) % len(clip)],
                     ) != Vec2.ccw(clip_begin, clip_end, prev_point):
                         output_list.append(inter_point)
-                        print("A1")
                     output_list.append(curr_point)
                 elif Vec2.ccw(
                     clip_begin,
@@ -694,19 +692,19 @@ class Camera:
                     clip[(clip_index + 2) % len(clip)],
                 ) == Vec2.ccw(clip_begin, clip_end, prev_point):
                     output_list.append(inter_point)
-                    print("A2")
         return output_list
 
     def _clip_poly_sides_fustrum(self,poly,near,far,pov):
         # TODO: non-square aspect ratios
         xy_z_clip_coords=[
-            Vec2(0,0),
-            Vec2(-math.tan(math.radians(pov/2))*far,far),
-            Vec2(math.tan(math.radians(pov/2))*far,far),
-            #Vec2(math.tan(math.radians(pov/2))*near,near),
+            Vec2(-2*near,0),
+            Vec2(-far,far),
+            Vec2(far,far),
+            Vec2(2*near,0),
         ]
         swapped_xzyw=[]
         for point in poly:
+            print(point)
             swapped_xzyw.append(Vec4(point.x,point.z,point.y,point.w))
         clipped = self._metadata_clip(swapped_xzyw,xy_z_clip_coords)
         swapped_yzxw=[]
