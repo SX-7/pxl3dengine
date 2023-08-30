@@ -1,5 +1,6 @@
 import pyxel as px
-from utils import Vec3, render, Vec2, Vec4, Shape
+from utils import Vec3, Vec2, Vec4, Shape
+from render import render
 import math
 
 
