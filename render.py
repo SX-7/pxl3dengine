@@ -1,5 +1,6 @@
 from utils import *
 
+
 class Camera:
     """Changes 3d coordinates to 2d ones.
     Input list of shapes (or a single shape) and parameters.
@@ -146,7 +147,7 @@ class Camera:
                     output_list.append(inter_point)
         return output_list
 
-    def _clip_poly_sides_fustrum(self, poly, near, far, pov):
+    def _clip_poly_sides_fustrum(self, poly, near, far):
         # TODO: non-square aspect ratios
         xy_z_clip_coords = [
             Vec2(-2 * near, 0),
@@ -220,7 +221,7 @@ class Camera:
             clip_space.append(point)
         # vertex processing - clipping
         clip_space = self._clip_poly_to_nf_fustrum(clip_space, near, far)
-        clip_space = self._clip_poly_sides_fustrum(clip_space, near, far, pov)
+        clip_space = self._clip_poly_sides_fustrum(clip_space, near, far)
         result = []
         for point in clip_space:
             point.x = point.x / point.w
@@ -285,3 +286,87 @@ def render(
             )
         )
     return result
+
+
+def render(
+    shapes: list[Shape],
+    near: float,
+    far: float,
+    screen_width: float,
+    screen_heigth: float,
+    vertex_shader: function,
+    vertex_shader_args: list[list[dict]],
+    fragment_shader: function,
+    fragment_shader_args:dict
+):
+    """Gives back a list of pixels to show, given a shape list
+
+    Args:
+        shapes (list[Shape]): List of shapes to work on
+        near (float): How far the near plane is
+        far (float): How far the far plane is
+        vertex_shader (function): Function taking in (Vec4, dict) and returning Vec4, dict. The dict returned will be interpolated across the fragments during the rasterization, and passed to fragment shader
+        vertex_shader_args (list[list[dict]]): List of list of dicts, if there's not enough dicts in a sublist it'll be reused for that shape, if there's not enough sublists the last sublist will be reused till the end
+        fragment_shader (function): Function taking in (Fragment, dict) and returning float,int for Z depth and pyxel color value
+        fragment_shader_args (dict): Since we can't predict the amount of fragments et al, we have one shared args - best for textures and the like
+    """
+    vs_shapes = []
+    for i in range(shapes):
+        shape = shapes[i]
+        sublist = vertex_shader_args[i]
+        new_vertices = []
+        for j in range(shape.vertices):
+            vertice = shape.vertices[j]
+            args = sublist[j]
+            new_vertice, new_args = vertex_shader(vertice,args)
+            new_vertices.append((new_vertice,new_args))
+        vs_shapes.append(new_vertices)
+    # now we have transformed vertices, time to clip em, remember that points are actually tuples (point,args)
+    clip_shapes = []
+    for shape in vs_shapes:
+        clip_shape = clip_poly_sides_fustrum(clip_poly_to_nf_fustrum(shape, near, far), near, far)
+        if clip_shape:
+            clip_shapes.append(clip_shape)
+    # we now have a list of list of tuples, fyi
+    result = []
+    for shape in clip_shapes:
+        curr = []
+        for point in shape:
+            point[0].x = point[0].x / point[0].w
+            point[0].y = point[0].y / point[0].w
+            point[0].z = point[0].z / point[0].w
+            point[0].w = 1
+            point[0].y = -point[0].y
+            point[0] += Vec4(1, 1, 0, 0)
+            point[0].x *= screen_width / 2
+            point[0].y *= screen_heigth / 2
+            curr.append(point)
+        # vertex processing - face culling
+        if len(curr) > 0:
+            tris = Shape(curr).decompose_to_triangles()
+            for triangle in tris:
+                if Vec2.ccw(
+                    triangle.vertices[0],
+                    triangle.vertices[1],
+                    triangle.vertices[2],
+                ):
+                    result.append(triangle)
+    # now we have "screenspace" points, with proper values in their tuples et al
+    # fragments format? *likely* something like what's on the opengl wiki, remember to interp values
+    fragments = []
+    for tri in result:
+        fragments.extend(rasterize(tri,screen_heigth,screen_width))
+    res_sheet=[]
+    for line in screen_heigth:
+        res_sheet.append([])
+    # currently doing depth test only rn, might move it higher laterrrr
+    for fragment in fragments:
+        curr_res = fragment_shader(fragment,fragment_shader_args)
+        try:
+            if res_sheet[fragment.y][fragment.x].z<curr_res.z:
+                res_sheet[fragment.y][fragment.x] = curr_res
+        except:
+            res_sheet[fragment.y][fragment.x] = curr_res
+    # we now have a sheet of colors... rn we do be passing it to the user to do whatever they want with it
+    # but, we could also import pyxel here and yeet it into it. rn let's just return a sheet of values
+    return res_sheet
