@@ -19,7 +19,7 @@ class App:
         self.camera_front = Vec3(0, 0, 1)
         self.camera_orientation_degrees = Vec2(90, 0)
         self.world_up = Vec3(0, 1, 0)
-        self.screen_shapes: list[Shape] = []
+        self.screen_pixels: list[list[int]] = []
         self.shape_data: list[Shape] = []
         self.shape_data.append(
             Shape(
@@ -179,15 +179,10 @@ class App:
             else:
                 self.debug = True
         # process pixel's positions
-        self.screen_shapes = render(
-            self.shape_data,
-            camera_pos=self.camera_position,
+        self.screen_pixels = render(
+            shapes=self.shape_data,
             screen_heigth=px.height,
             screen_width=px.width,
-            rotation=self.object_rotation,
-            camera_front=self.camera_front,
-            world_up=self.world_up,
-            pov=self.pov,
         )
 
     # @speed_test
@@ -195,42 +190,9 @@ class App:
         # clear screen
         px.cls(0)
         # draw pixels
-        color = 0
-        # self.screen_shapes.sort(key=lambda inp: -inp[0].vertices[0].z)
-        for shape in self.screen_shapes:
-            color += 1
-            color %= 16
-            if shape.count == 1:
-                px.pset(shape.vertices[0].x, shape.vertices[0].y, color)
-            elif shape.count == 2:
-                px.line(
-                    shape.vertices[0].x,
-                    shape.vertices[0].y,
-                    shape.vertices[1].x,
-                    shape.vertices[1].y,
-                    color,
-                )
-            else:
-                if self.wireframe:
-                    px.trib(
-                        shape.vertices[0].x,
-                        shape.vertices[0].y,
-                        shape.vertices[1].x,
-                        shape.vertices[1].y,
-                        shape.vertices[2].x,
-                        shape.vertices[2].y,
-                        color,
-                    )
-                else:
-                    px.tri(
-                        shape.vertices[0].x,
-                        shape.vertices[0].y,
-                        shape.vertices[1].x,
-                        shape.vertices[1].y,
-                        shape.vertices[2].x,
-                        shape.vertices[2].y,
-                        color,
-                    )
+        for x in range(self.screen_pixels):
+            for y in range(self.screen_pixels[x]):
+                px.pset(x, y, self.screen_pixels)
         # draw mouse pointer helper
         if self.capture_mouse:
             px.pset(px.width // 2, px.height // 2, 8)

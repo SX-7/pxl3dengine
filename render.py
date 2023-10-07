@@ -1,9 +1,14 @@
 from utils import *
 from typing import Callable
+from dataclasses import dataclass
 
-
+@dataclass
 class Fragment:
-    ...
+    x: int
+    y: int
+    z: float
+    data: dict
+    color: int
 
 
 def _clip():
@@ -91,7 +96,7 @@ def render(
         ]
     ],
     fragment_shader: Callable[
-        [Fragment, dict], tuple[float, int, int]
+        [Fragment, dict], Fragment
     ] = default_fragment_shader,
     fragment_shader_args: dict = {},
 ):
@@ -103,7 +108,7 @@ def render(
         far (float): How far the far plane is
         vertex_shader (function): Function taking in (Vec4, dict) and returning Vec4, dict. The dict returned will be interpolated across the fragments during the rasterization, and passed to fragment shader
         vertex_shader_args (list[list[dict]]): List of list of dicts, if there's not enough dicts in a sublist it'll be reused for that shape, if there's not enough sublists the last sublist will be reused till the end
-        fragment_shader (function): Function taking in (Fragment, fs_in_args:dict) and returning float,int for Z depth and pyxel color value
+        fragment_shader (function): Function taking in (Fragment, fs_in_args:dict) and returning converted fragment
         fragment_shader_args (dict): Since we can't predict the amount of fragments et al, we have one shared args - best for textures and the like
     """
     vs_shapes = []
@@ -168,10 +173,10 @@ def render(
     for fragment in fragments:
         curr_res = fragment_shader(fragment, fragment_shader_args)
         try:
-            if res_sheet[fragment.y][fragment.x].z < curr_res.z:
-                res_sheet[fragment.y][fragment.x] = curr_res
+            if res_sheet[curr_res.y][curr_res.x].z < curr_res.z:
+                res_sheet[curr_res.y][curr_res.x] = curr_res
         except:
-            res_sheet[fragment.y][fragment.x] = curr_res
+            res_sheet[curr_res.y][curr_res.x] = curr_res
     # we now have a sheet of fragments
     # converting it to colors
     for line in res_sheet:
