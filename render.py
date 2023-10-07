@@ -2,6 +2,7 @@ from utils import *
 from typing import Callable
 from dataclasses import dataclass
 
+
 @dataclass
 class Fragment:
     x: int
@@ -11,18 +12,28 @@ class Fragment:
     color: int
 
 
-def _clip():
-    ...
+def _clip(
+    shape: list[tuple[Vec4, dict]], near: float, far: float
+) -> list[tuple[Vec4, dict]]:
+    return shape
 
 
 def _rasterize(
-    shape: DataShape, screen_width: int, screen_height: float
+    triangle: DataShape, screen_width: int, screen_height: float
 ) -> list[Fragment]:
-    ...
+    res_frags = []
+    for x in range(screen_width):
+        for y in range(screen_height):
+            if Vec2.is_in_triangle(Vec2(x,y),triangle.vertices[0][0],triangle.vertices[1][0],triangle.vertices[2][0]):
+                interpolated_z
+                interpolated_dict
+                res_frags.append(Fragment(x,y,interpolated_z,interpolated_data,0))
+    return res_frags
+    
 
 
 def default_fragment_shader(fragment: Fragment, fs_data: dict) -> Fragment:
-    ...
+    return fragment
 
 
 # doing it as a func, gonnna swap to class (with some caching) later
