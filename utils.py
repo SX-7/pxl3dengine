@@ -100,6 +100,56 @@ class Shape:
                 )
             return shapes
 
+class DataShape:
+    pass
+class DataShape:
+    def __init__(self, vertices: list[tuple[Vec3,dict]]) -> None:
+        self.vertices: list[tuple[Vec3,dict]] = vertices
+        self.count = len(vertices)
+
+    def __eq__(self, __value: object) -> bool:
+        return self.vertices == __value.vertices
+
+    def insert_vertice(self, vertice: tuple[Vec3,dict], index: int) -> None:
+        self.vertices.insert(index, vertice)
+        self.count = len(self.vertices)
+
+    def add_vertice(self, vertice: tuple[Vec3,dict]) -> None:
+        self.vertices.append(vertice)
+        self.count = len(self.vertices)
+
+    def del_vertice(self, index: int) -> None:
+        self.vertices.pop(index)
+        self.count = len(self.vertices)
+
+    def decompose_to_triangles(self) -> list[DataShape]:
+        """Can behave unexpectedly if used on shapes bigger than
+        triangles, whose vertices are not on the same plane.
+        Vertice no.0 will be used as common point for all triangles
+
+        Raises:
+            IndexError: If the shape is smaller than 3 vertices
+
+        Returns:
+            list[DataShape]: List of triangles
+        """
+        if self.count < 3:
+            raise IndexError
+        elif self.count == 3:
+            return [self]
+        else:
+            shapes = []
+            for vertice in range(1, self.count - 1):
+                shapes.append(
+                    DataShape(
+                        [
+                            self.vertices[0],
+                            self.vertices[vertice],
+                            self.vertices[vertice + 1],
+                        ]
+                    )
+                )
+            return shapes
 
 class Vec2:
     def __init__(self, x: float | int, y: float | int) -> None:
